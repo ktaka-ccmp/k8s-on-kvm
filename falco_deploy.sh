@@ -2,9 +2,14 @@
 
 . ./config.source
 
+echo "Deploying falco on ${BaseNode}..."
+
 rsync -arve ssh ./falco root@${BaseNode}:~/
 
-ssh root@${BaseNode} '
+ssh -t root@${BaseNode} '
+echo
+helm  list --all-namespaces
+
 helm  delete falco -n falco
 sleep 1
 
@@ -15,7 +20,7 @@ helm install falco falcosecurity/falco -f falco/falco-values-kmod-norule.yaml -f
 # helm upgrade falco falcosecurity/falco -f falco/falco-values-kmod-default.yaml -f falco/custom-rules-process.yaml -f falco/custom-rules-network.yaml --namespace falco --create-namespace
 
 echo
-helm  list --all-namespaces
+watch -n 1 "kubectl get pods -n falco -o wide"
 echo
-kubectl get pods -n falco -o wide
+helm  list --all-namespaces
 '
