@@ -1,0 +1,184 @@
+
+customRules:
+
+  custom-rules-network.yaml: |-
+    - macro: never_true
+      condition: (evt.num=0)
+
+    - macro: inbound_tcp
+      condition: >
+        ((evt.type in (accept,accept4,listen) and evt.dir=<) and
+        (fd.typechar = 4 or fd.typechar = 6) and
+        (fd.ip != "0.0.0.0" and fd.net != "127.0.0.0/8") and
+        (evt.rawres >= 0 or evt.res = EINPROGRESS))
+
+    - macro: outbound_tcp
+      condition: >
+        ((evt.type = connect and evt.dir=<) and
+         (fd.typechar = 4 or fd.typechar = 6) and
+         (fd.ip != "0.0.0.0" and fd.net != "127.0.0.0/8") and
+         (evt.rawres >= 0 or evt.res = EINPROGRESS))
+
+    - macro: inbound_outbound_tcp
+      condition: >
+        ((evt.type in (accept,accept4,listen,connect) and evt.dir=<) and
+         (fd.typechar = 4 or fd.typechar = 6) and
+         (fd.ip != "0.0.0.0" and fd.net != "127.0.0.0/8") and
+         (evt.rawres >= 0 or evt.res = EINPROGRESS))
+
+    - macro: inbound_udp
+      condition: >
+        ((evt.type in (recvfrom,recvmsg) and evt.dir=< and fd.l4proto != tcp and fd.connected=false and fd.name_changed=true) and
+        (fd.typechar = 4 or fd.typechar = 6) and
+        (fd.ip != "0.0.0.0" and fd.net != "127.0.0.0/8") and
+        (evt.rawres >= 0 or evt.res = EINPROGRESS))
+
+    - macro: outbound_udp
+      condition: >
+        (((evt.type = connect and evt.dir=<) or
+         (evt.type in (sendto,sendmsg) and evt.dir=< and fd.l4proto != tcp and fd.connected=false and fd.name_changed=true)) and
+         (fd.typechar = 4 or fd.typechar = 6) and
+         (fd.ip != "0.0.0.0" and fd.net != "127.0.0.0/8") and
+         (evt.rawres >= 0 or evt.res = EINPROGRESS))
+
+    - macro: inbound_outbound_udp
+      condition: >
+        ((evt.type in (recvfrom,recvmsg,sendto,sendmsg) and evt.dir=< and fd.l4proto != tcp and fd.connected=false and fd.name_changed=true) and
+         (fd.typechar = 4 or fd.typechar = 6) and
+         (fd.ip != "0.0.0.0" and fd.net != "127.0.0.0/8") and
+         (evt.rawres >= 0 or evt.res = EINPROGRESS))
+
+    - list: expected_tcp_ports
+      items: [1]
+
+    - macro: container
+      condition: (container.id != host)
+
+    - macro: k8s_apiserver
+      condition: k8s.pod.name startswith kube-apiserver- and k8s.ns.name = "kube-system" and (
+        (evt.type = accept4 and fd.sport = 6443) or
+        (evt.type = connect and fd.sport = 10250)
+        )
+
+    - macro: k8s_etcd
+      condition: k8s.pod.name startswith etcd- and k8s.ns.name = "kube-system" and (
+        (evt.type = accept4 and fd.sport = 2380) or
+        (evt.type = connect and fd.sport = 2380)
+        )
+
+    - macro: k8s_coredns
+      condition: k8s.pod.name startswith coredns- and k8s.ns.name = "kube-system" and
+        evt.type = accept4 and fd.sport in (8080,8181)
+
+    - macro: falco
+      condition: k8s.pod.name startswith falco- and k8s.ns.name = "falco" and (
+        (evt.type in (accept,accept4) and fd.sport = 8765) or
+        (evt.type = connect and fd.sport = 2801)
+        )
+
+    - macro: falco_falcosidekick
+      condition: k8s.pod.name startswith falco-falcosidekick- and k8s.ns.name = "falco" and (
+        (evt.type = accept4 and fd.sport = 2801) or
+        (evt.type = connect and fd.sport = 2802)
+        )
+
+    - macro: falco_falcosidekick_ui
+      condition: k8s.pod.name startswith falco-falcosidekick-ui- and k8s.ns.name = "falco" and (
+        (evt.type = accept4 and fd.sport = 2802) or
+        (evt.type = connect and fd.sport = 6379)
+        )
+
+    - macro: falco_redis
+      condition: k8s.pod.name startswith falco-falcosidekick-ui-redis- and k8s.ns.name = "falco" and (
+        (evt.type in (accept,accept4) and fd.sport = 6379) or
+        (evt.type = connect and fd.sport = 0)
+        )
+
+    - macro: kubeshark
+      condition: fd.port = 8897 and k8s.pod.name startswith kubeshark-worker-daemon-set- and k8s.ns.name = "shark"
+
+    - macro: secure_k8s_apps
+      condition: k8s.pod.name startswith dashboard- and k8s.ns.name in (prd,dev) and (
+        (evt.type in (connect,accept4) and fd.sip = "::1" and fd.sport = 3000) or
+        (evt.type = accept4 and fd.cip = "10.244.0.0" and fd.sport = 8000)
+        )
+
+    - macro: host
+      condition: (container.id = host)
+
+    - macro: k8s_kubelet
+      condition: proc.name = "kubelet" and (
+        (evt.type in (connect) and fd.sport in (2801,2802,6379,6443,8080,8181,8765)) or
+        (evt.type in (accept4) and fd.sport = 10250)
+        )
+
+    # (2801,2802,6379,6443,8080,8181,8765) = (falcosidekick, falcosidekick-ui, falcosidekick-ui-redis, coredns, coredns, falco)
+
+    - macro: expected_tcp_traffic
+      condition: >
+        fd.port in (expected_tcp_ports) or
+        k8s_kubelet or
+        k8s_apiserver or
+        k8s_etcd or
+        k8s_coredns or
+        falco or
+        falco_falcosidekick or
+        falco_falcosidekick_ui or
+        falco_redis or
+        secure_k8s_apps
+
+    - rule: TCP Inbound
+      desc: Detect unexpected Inbound TCP connection
+      enabled: true
+      condition: inbound_tcp and fd.l4proto=tcp and not expected_tcp_traffic
+      output: Unexpected Inbound TCP Traffic (host=%evt.hostname connection=%fd.name fd_proto=%fd.l4proto evt_type=%evt.type process=%proc.name command=%proc.cmdline proc_exepath=%proc.exepath parent=%proc.pname user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
+      priority: WARNING
+      tags: [catch_all, inbound_tcp, network, ktaka]
+
+    - rule: TCP Outbound
+      desc: Detect unexpected Outbound TCP connection
+      enabled: true
+      condition: outbound_tcp and fd.l4proto=tcp and not expected_tcp_traffic
+      output: Unexpected Outbound TCP Traffic (host=%evt.hostname connection=%fd.name fd_proto=%fd.l4proto evt_type=%evt.type process=%proc.name command=%proc.cmdline proc_exepath=%proc.exepath parent=%proc.pname user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
+      priority: WARNING
+      tags: [catch_all, outbound_tcp, network, ktaka]
+
+    - list: expected_udp_ports
+      items: [1]
+
+    - macro: coredns
+      condition: k8s.pod.name startswith coredns- and k8s.ns.name = "kube-system" and
+        (evt.type = connect and fd.sport = 53)
+
+    - macro: kube_dns
+      condition: fd.sip = "10.96.0.10" and fd.sport = 53
+
+    - macro: kube_proxy
+      condition: fd.sip = "::1" and fd.sport = 53
+
+    - macro: host_dns_discard
+      condition: container.id = host and (
+        (fd.sip = "192.168.60.1" and fd.sport = 53)
+        or (fd.sport = 9)
+        )
+
+    - macro: expected_udp_traffic
+      condition: fd.port in (expected_udp_ports) or
+        kube_dns or kube_proxy or coredns
+        or host_dns_discard
+
+    - rule: UDP Inbound
+      desc: Detect unexpected Inbound UDP Traffic
+      enabled: true
+      condition: inbound_udp and fd.l4proto=udp and not expected_udp_traffic
+      output: Unexpected Inbound UDP Traffic (host=%evt.hostname connection=%fd.name fd_proto=%fd.l4proto evt_type=%evt.type process=%proc.name command=%proc.cmdline proc_exepath=%proc.exepath parent=%proc.pname user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
+      priority: WARNING
+      tags: [catch_all, inbound_udp, network, ktaka]
+
+    - rule: UDP Outboud
+      desc: Detect unexpected Outbound UDP Traffic
+      enabled: true
+      condition: outbound_udp and fd.l4proto=udp and not expected_udp_traffic
+      output: Unexpected Outbound UDP Traffic (host=%evt.hostname connection=%fd.name fd_proto=%fd.l4proto evt_type=%evt.type process=%proc.name command=%proc.cmdline proc_exepath=%proc.exepath parent=%proc.pname user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
+      priority: WARNING
+      tags: [catch_all, outbound_udp, network, ktaka]

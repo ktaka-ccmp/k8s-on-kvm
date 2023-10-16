@@ -1,0 +1,21 @@
+
+BaseNode=v130
+MasterNodes="v131 v132 v133"
+WorkerNodes="v134 v135 v136"
+TheMaster=${MasterNodes%% *}
+
+ContainerdVER=1.7.6
+ContainerdURL=https://github.com/containerd/containerd/releases/download/v${ContainerdVER}/containerd-${ContainerdVER}-linux-amd64.tar.gz
+Containerd=containerd-${ContainerdVER}-linux-amd64.tar.gz
+
+ReleasekeyURL=https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key
+DebURL=https://pkgs.k8s.io/core:/stable:/v1.28/deb/
+
+
+#Falco
+KernSRC=/kvm/SRC/linux-6.4.11
+FalcoSRC=falco-0.36.0-static-x86_64.tar.gz
+FalcoSrcURL=https://download.falco.org/packages/bin/x86_64/${FalcoSRC}
+FalcoBin=$(echo ${FalcoSRC}| sed 's/-static//g;s/.tar.gz//g')
+PvNode=${WorkerNodes%% *}
+

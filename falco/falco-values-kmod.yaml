@@ -1,0 +1,19 @@
+driver:
+  loader:
+    enabled: true
+
+falcosidekick:
+  enabled: true
+  webui:
+    enabled: true
+    redis:
+      storageClass: "local-storage"
+    service:
+      type: "NodePort"
+
+extra:
+  env: 
+  - name: FALCO_HOSTNAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName

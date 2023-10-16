@@ -1,0 +1,32 @@
+driver:
+  loader:
+    enabled: true
+
+falcosidekick:
+  enabled: true
+  webui:
+    enabled: true
+    redis:
+      storageClass: "local-storage"
+    service:
+      type: "NodePort"
+
+extra:
+  env:
+  - name: FALCO_HOSTNAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
+
+falcoctl:
+  config:
+    artifact:
+      install:
+        enabled: false
+      follow:
+        enabled: false
+
+falco:
+  rules_file:
+    - /etc/falco/falco_rules.local.yaml
+    - /etc/falco/rules.d

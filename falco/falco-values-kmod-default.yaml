@@ -1,0 +1,41 @@
+driver:
+  loader:
+    enabled: true
+
+falcosidekick:
+  enabled: true
+  webui:
+    enabled: true
+    redis:
+      storageClass: "local-storage"
+    service:
+      type: "NodePort"
+
+extra:
+  env:
+  - name: FALCO_HOSTNAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
+
+falcoctl:
+  config:
+    artifact:
+      install:
+        refs:
+          - falco-rules:2
+          - falco-incubating-rules:2
+          - falco-sandbox-rules:2
+      follow:
+        refs:
+          - falco-rules:2
+          - falco-incubating-rules:2
+          - falco-sandbox-rules:2
+
+falco:
+  rules_file:
+    - /etc/falco/k8s_audit_rules.yaml
+    - /etc/falco/rules.d
+    - /etc/falco/falco_rules.yaml
+    - /etc/falco/falco-incubating_rules.yaml
+    - /etc/falco/falco-sandbox_rules.yaml

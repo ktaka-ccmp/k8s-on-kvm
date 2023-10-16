@@ -1,0 +1,22 @@
+driver:
+  loader:
+    enabled: false
+  kind: ebpf
+  ebpf:
+    path: "/host/lib/modules/falco-bpf.o"
+
+falcosidekick:
+  enabled: true
+  webui:
+    enabled: true
+    redis:
+      storageClass: "local-storage"
+    service:
+      type: "NodePort"
+
+extra:
+  env:
+  - name: FALCO_HOSTNAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName

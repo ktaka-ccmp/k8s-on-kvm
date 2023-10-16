@@ -1,0 +1,68 @@
+customRules:
+
+  custom-rules-process.yaml: |-
+
+    - macro: spawned_process
+      condition: (evt.type in (execve, execveat) and evt.dir=<)
+
+    - macro: kubelet_children
+      condition: proc.pname = kubelet and proc.name in (iptables, ip6tables)
+
+    - macro: kube_proxy_children
+      condition: proc.pname = kube-proxy and proc.name in (iptables, ip6tables, iptables-restor, iptables-save, ip6tables-resto, ip6tables-save)
+
+    - macro: flanneld_children
+      condition: proc.pname = flanneld and proc.name in (iptables)
+
+    - macro: containerd_children
+      condition: >
+        proc.pname = containerd and proc.name in (flannel, loopback, portmap, containerd-shim)
+        or proc.pname = containerd-shim and proc.name in (runc)
+
+    - macro: systemd_children
+      condition: container.id = host and (
+        (proc.pname = systemd and proc.name in (sa1, sadc, apt-helper, apt.systemd.dai, systemd-tmpfile, dpkg-db-backup, logrotate, sa2, e2scrub_all, fstrim))
+        or (proc.aname[4] = systemd and proc.aname[3] = apt.systemd.dai and proc.aname[2] = apt.systemd.dai and proc.pname = apt-config and proc.name = dpkg)
+        or (proc.aname[4] = systemd and proc.aname[3] = apt.systemd.dai and proc.aname[2] = apt.systemd.dai and proc.pname = apt-get and proc.name = dpkg)
+        or (proc.aname[3] = systemd and proc.aname[2] = apt.systemd.dai and proc.pname = apt-config and proc.name in (dpkg))
+        or (proc.aname[3] = systemd and proc.aname[2] = apt.systemd.dai and proc.pname = apt.systemd.dai and proc.name in (apt-config, apt-get, cmp, date))
+        or (proc.aname[3] = systemd and proc.aname[2] = sa2 and proc.pname = xargs and proc.name in (rm, xargs))
+        or (proc.aname[2] = systemd and proc.pname = apt-helper and proc.name in (apt-helper, systemctl))
+        or (proc.aname[2] = systemd and proc.pname = apt.systemd.dai and proc.name in (apt-config, apt.systemd.dai, flock))
+        or (proc.aname[2] = systemd and proc.pname = sa2 and proc.name in (date, find, grep, sar.sysstat, xargs))
+        or (proc.aname[2] = systemd and proc.pname = dpkg-db-backup and proc.name in (basename, cmp, tar))
+        )
+
+    - macro: cron_children
+      condition: container.id = host and (
+        (proc.aname[4] = cron and proc.aname[3] = cron and proc.aname[2] = sh and proc.pname = run-parts and proc.name in (apt-compat, aptitude, dpkg, logrotate, sysstat))
+        or (proc.aname[4] = cron and proc.aname[3] = sh and proc.aname[2] = run-parts and proc.pname = aptitude and proc.name in (cmp))
+        or (proc.aname[4] = systemd and proc.aname[3] = cron and proc.aname[2] = cron and proc.pname = sh and proc.name in (debian-sa1, run-parts))
+        or (proc.aname[3] = systemd and proc.aname[2] = cron  and proc.pname = cron and proc.name in (sh))
+        )
+
+    #   or (proc.aname[3] =  and proc.aname[2] =  and proc.pname =  and proc.name in ())
+
+    - macro: kmod_loader
+      condition: (
+        (proc.exepath = /usr/bin/kmod and proc.name = modprobe)
+        )
+
+    - macro: trusted_processes
+      condition: (
+        kubelet_children
+        or kube_proxy_children
+        or flanneld_children
+        or containerd_children
+        or cron_children
+        or kmod_loader
+        or systemd_children
+        )
+
+    - rule: Process Creation
+      desc: Detect unexpected Process Creation
+      enabled: true
+      condition: spawned_process and not trusted_processes
+      output: Process spawned (host=%evt.hostname parent_exe=%proc.pexe parent_exepath=%proc.pexepath pcmdline=%proc.pcmdline gparent=%proc.aname[2] ggparent=%proc.aname[3] aname[4]=%proc.aname[4] aname[5]=%proc.aname[5] aname[6]=%proc.aname[6] aname[7]=%proc.aname[7] evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
+      priority: WARNING
+      tags: [catch_all, process, ktaka]
