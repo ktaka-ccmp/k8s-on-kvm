@@ -87,17 +87,23 @@ kubectl get  node -o wide
 EOF
 
 ##### base image setup
+
+wait_for_base_node(){
+while ! ssh -oStrictHostKeyChecking=no root@${BaseNode} uptime ; do echo "Waiting for ${BaseNode} to come up." ; sleep 1 ; done
+echo "${BaseNode} has come up!"
+}
+
 sudo mem=8g smp=4 /kvm/sbin/kvm create ${BaseNode}
+
+wait_for_base_node
 
 scp -o "StrictHostKeyChecking=no" /tmp/k8s_setup.sh root@${BaseNode}:~/
 ssh -oStrictHostKeyChecking=no root@${BaseNode} "chmod +x ./k8s_setup.sh && ./k8s_setup.sh && reboot"
 
-sleep 10
-
+wait_for_base_node
 ssh root@${BaseNode} "systemctl daemon-reload && systemctl enable --now containerd && sleep 3 && ps -ef |grep containerd "
 ssh root@${BaseNode} "poweroff"
-
-sleep 10 
+sudo /kvm/sbin/kvm con ${BaseNode}
 
 sudo bash -c "for host in ${MasterNodes} ${WorkerNodes} ;do
 echo cp /kvm/data/${BaseNode}.img /kvm/data/\$host.img
@@ -105,7 +111,8 @@ cp /kvm/data/${BaseNode}.img /kvm/data/\$host.img
 done"
 
 for h in ${BaseNode} ${MasterNodes} ${WorkerNodes} ;do echo $h; sudo mem=8g smp=4 /kvm/sbin/kvm create $h ; done
-sleep 10
+
+wait_for_base_node
 for h in ${BaseNode} ${MasterNodes} ${WorkerNodes} ;do ssh-keygen -f "/home/ktaka/.ssh/known_hosts" -R "$h" ; done
 for h in ${BaseNode} ${MasterNodes} ${WorkerNodes} ;do echo $h; ssh -oStrictHostKeyChecking=no root@$h uptime ; done
 
