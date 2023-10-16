@@ -5,6 +5,9 @@ customRules:
     - macro: never_true
       condition: (evt.num=0)
 
+    - macro: container
+      condition: (container.id != host)
+
     - macro: inbound_tcp
       condition: >
         ((evt.type in (accept,accept4,listen) and evt.dir=<) and
@@ -50,9 +53,6 @@ customRules:
 
     - list: expected_tcp_ports
       items: [1]
-
-    - macro: container
-      condition: (container.id != host)
 
     - macro: k8s_apiserver
       condition: k8s.pod.name startswith kube-apiserver- and k8s.ns.name = "kube-system" and (
@@ -102,9 +102,6 @@ customRules:
         (evt.type in (connect,accept4) and fd.sip = "::1" and fd.sport = 3000) or
         (evt.type = accept4 and fd.cip = "10.244.0.0" and fd.sport = 8000)
         )
-
-    - macro: host
-      condition: (container.id = host)
 
     - macro: k8s_kubelet
       condition: proc.name = "kubelet" and (
