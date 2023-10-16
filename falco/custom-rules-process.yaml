@@ -20,7 +20,7 @@ customRules:
         or proc.pname = containerd-shim and proc.name in (runc)
 
     - macro: falco_children
-      condition: proc.pname = containerd-shim and proc.name startswith falcosidekick-u)
+      condition: proc.pname = containerd-shim and proc.name startswith falcosidekick-u
 
     - macro: systemd_children
       condition: container.id = host and (
@@ -51,6 +51,20 @@ customRules:
         (proc.exepath = /usr/bin/kmod and proc.name = modprobe)
         )
 
+    - macro: ad_hoc
+      condition: (
+        (proc.aname[4] = systemd and proc.aname[3] =90gpg-agent and proc.aname[2] = 90gpg-agent and proc.pname = gpgconf and proc.name in (gpg-agent, gpgconf))
+        )
+
+    - macro: secure_k8s_apps
+      condition: (k8s.ns.name in (dev,prd) and (
+        (k8s.pod.name startswith dashboard- and proc.aname[3] = containerd-shim and proc.aname[2] = dumb-init and proc.pname = node and proc.name = node)
+        or (k8s.pod.name startswith dashboard- and proc.aname[2] = containerd-shim and proc.pname = nginx and proc.name = nginx)
+        or (k8s.pod.name startswith app- and proc.aname[2] = containerd-shim and proc.pname = gunicorn and proc.name = gunicorn)
+        or (k8s.pod.name startswith db- and proc.aname[2] = systemd and proc.pname = containerd-shim and proc.name = redis-server)
+        ))
+
+
     - macro: trusted_processes
       condition: (
         kubelet_children
@@ -61,7 +75,9 @@ customRules:
         or kmod_loader
         or systemd_children
         or falco_children
+        or secure_k8s_apps
         )
+    #    or ad_hoc
 
     - rule: Process Creation
       desc: Detect unexpected Process Creation
@@ -73,6 +89,9 @@ customRules:
 
 
 
+
+    - macro: never_true
+      condition: (evt.num=0)
 
     - macro: open_write
       condition: (evt.type in (open,openat,openat2) and evt.is_open_write=true and fd.typechar='f' and fd.num>=0)
@@ -88,16 +107,26 @@ customRules:
 
     - macro: process_exempt
       condition: (
-        (container.id = host and proc.name in (kubelet, containerd, containerd-shim, dbus-daemon, systemd))
+        (container.id = host and (
+        (proc.name in (systemd))
+        or (proc.pname = systemd and proc.name in (kubelet, containerd, containerd-shim, dbus-daemon, systemd, systemd-journal, systemd-udevd))
+        or (proc.aname[3] = systemd and proc.aname[2] = cron and proc.pname = cron and proc.name = cron)
+        or (proc.aname[2] = systemd and proc.pname = cron and proc.name = cron)
+        ))
         or (k8s.pod.name startswith kube-apiserver- and proc.name = kube-apiserver)
         or (k8s.pod.name startswith etcd- and proc.name = etcd)
         or (k8s.pod.name startswith coredns- and proc.name = coredns)
         or (k8s.pod.name startswith kube-proxy- and proc.name in (kube-proxy))
         or (k8s.pod.name startswith kube-flannel- and proc.name in (flanneld))
-        or (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.name = redis-server)
+        or (k8s.pod.name startswith falco- and proc.name in (falco, grpc_global_tim, falcoctl-bin))
+        or (k8s.pod.name startswith falco-falcosidekick- and proc.name startswith falcosidekick)
+        or (k8s.pod.name startswith falco-falcosidekick-ui- and proc.name startswith runc)
+        or (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.name in (redis-server, node))
         or (proc.aname[3] = systemd and proc.aname[2] = containerd-shim and proc.pname = runc and proc.name startswith runc)
-        or (container.id = host and proc.pname = systemd and proc.name in (systemd, systemd-journal))
+        or (proc.aname[2] = systemd and proc.pname = containerd-shim and proc.name startswith runc)
         )
+
+    #    or (container.id = host and proc.name in (kubelet, containerd, containerd-shim, dbus-daemon, systemd))
 
     - macro: file_read_exempt
       condition: (

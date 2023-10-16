@@ -72,8 +72,9 @@ customRules:
 
     - macro: falco
       condition: k8s.pod.name startswith falco- and k8s.ns.name = "falco" and (
-        (evt.type in (accept,accept4) and fd.sport = 8765) or
-        (evt.type = connect and fd.sport = 2801)
+        (evt.type in (accept,accept4) and fd.sport = 8765)
+        or (evt.type = connect and fd.sport = 2801)
+        or (proc.name = falcoctl-bin and evt.type = connect and fd.sport = 443)
         )
 
     - macro: falco_falcosidekick
@@ -153,6 +154,11 @@ customRules:
     - macro: kube_proxy
       condition: fd.sip = "::1" and fd.sport = 53
 
+    - macro: falco_udp
+      condition: k8s.pod.name startswith falco- and k8s.ns.name = "falco" and (
+        (proc.name = falcoctl-bin and evt.type = connect and fd.sport = 9)
+        )
+
     - macro: host_dns_discard
       condition: container.id = host and (
         (fd.sip = "192.168.60.1" and fd.sport = 53)
@@ -163,6 +169,7 @@ customRules:
       condition: fd.port in (expected_udp_ports) or
         kube_dns or kube_proxy or coredns
         or host_dns_discard
+        or falco_udp
 
     - rule: UDP Inbound
       desc: Detect unexpected Inbound UDP Traffic
