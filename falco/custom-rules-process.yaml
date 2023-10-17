@@ -6,21 +6,30 @@ customRules:
       condition: (evt.type in (execve, execveat) and evt.dir=<)
 
     - macro: kubelet_children
-      condition: proc.pname = kubelet and proc.name in (iptables, ip6tables)
+      condition: proc.pname = kubelet and proc.name in (iptables, ip6tables, mount)
 
     - macro: kube_proxy_children
       condition: proc.pname = kube-proxy and proc.name in (iptables, ip6tables, iptables-restor, iptables-save, ip6tables-resto, ip6tables-save)
 
     - macro: flanneld_children
-      condition: proc.pname = flanneld and proc.name in (iptables)
+      condition: (proc.pname = flanneld and proc.name in (iptables))
+        or container.id = host and (
+        (proc.aname[2] = flannel and proc.pname = bridge and proc.name = host-local)
+        or (proc.pname = flannel and proc.name = bridge)
+        )
 
     - macro: containerd_children
-      condition: >
-        proc.pname = containerd and proc.name in (flannel, loopback, portmap, containerd-shim)
-        or proc.pname = containerd-shim and proc.name in (runc)
+      condition: (
+        (proc.pname = containerd and proc.name in (flannel, loopback, portmap, containerd-shim))
+        or (proc.pname = containerd-shim and proc.name in (runc))
+        or (proc.aname[3] = systemd and proc.aname[2] = containerd-shim and proc.pname = runc and proc.name = exe and proc.exepath = /usr/sbin/runc)
+        or (proc.aname[3] = systemd and proc.aname[2] = containerd-shim and proc.pname = runc and proc.name = 6 and proc.cmdline = "6 init")
+        or (proc.aname[3] = systemd and proc.aname[2] = containerd and proc.pname = containerd-shim and proc.name = containerd-shim)
+        )
 
     - macro: falco_children
-      condition: proc.pname = containerd-shim and proc.name startswith falcosidekick-u
+      condition: k8s.ns.name = falco and k8s.pod.name startswith falco- 
+        )
 
     - macro: systemd_children
       condition: container.id = host and (
@@ -34,6 +43,10 @@ customRules:
         or (proc.aname[2] = systemd and proc.pname = apt.systemd.dai and proc.name in (apt-config, apt.systemd.dai, flock))
         or (proc.aname[2] = systemd and proc.pname = sa2 and proc.name in (date, find, grep, sar.sysstat, xargs))
         or (proc.aname[2] = systemd and proc.pname = dpkg-db-backup and proc.name in (basename, cmp, tar))
+        or (proc.aname[4] = systemd and proc.aname[3] = apt.systemd.dai and proc.aname[2] = apt.systemd.dai and proc.pname = apt-config and proc.name = dpkg)
+        or (proc.aname[3] = systemd and proc.aname[2] = systemd-udevd and proc.pname = systemd-udevd)
+        or (proc.aname[5] = systemd and proc.aname[4] = systemd-udevd and proc.aname[3] = systemd-udevd
+           and proc.aname[2] startswith ifupdown-hotplu and proc.pname startswith ifupdown-hotplu and proc.name = ifquery)
         )
 
     - macro: cron_children
@@ -83,10 +96,9 @@ customRules:
       desc: Detect unexpected Process Creation
       enabled: true
       condition: spawned_process and not trusted_processes
-      output: Process spawned (host=%evt.hostname parent_exe=%proc.pexe parent_exepath=%proc.pexepath pcmdline=%proc.pcmdline gparent=%proc.aname[2] ggparent=%proc.aname[3] aname[4]=%proc.aname[4] aname[5]=%proc.aname[5] aname[6]=%proc.aname[6] aname[7]=%proc.aname[7] evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
+      output: Process spawned (host=%evt.hostname parent_exe=%proc.pexe parent_exepath=%proc.pexepath pcmdline=%proc.pcmdline gparent=%proc.aname[2] ggparent=%proc.aname[3] aname[4]=%proc.aname[4] aname[5]=%proc.aname[5] aname[6]=%proc.aname[6] aname[7]=%proc.aname[7] evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline pcomand=%proc.pcmdline gpcommand=%proc.acmdline[2] terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
       priority: WARNING
       tags: [catch_all, process, ktaka]
-
 
 
 
@@ -111,6 +123,7 @@ customRules:
         (proc.name in (systemd))
         or (proc.pname = systemd and proc.name in (kubelet, containerd, containerd-shim, dbus-daemon, systemd, systemd-journal, systemd-udevd))
         or (proc.aname[2] = systemd and proc.pname = cron and proc.name = cron)
+        or (proc.aname[2] = systemd and proc.pname = systemd and proc.name = "(tmpfiles)")
         or (proc.aname[3] = systemd and proc.aname[2] = cron and proc.pname = cron and proc.name = cron)
         or (proc.aname[3] = systemd and proc.aname[2] = apt.systemd.dai and proc.pname = apt-config and proc.name = apt-config)
         or (proc.aname[4] = systemd and proc.aname[3] = apt.systemd.dai and proc.aname[2] = apt.systemd.dai and proc.pname = apt-config and proc.name = apt-config)
@@ -129,11 +142,17 @@ customRules:
         or (proc.aname[2] = systemd and proc.pname = containerd-shim and proc.name startswith runc)
         )
 
-    #    or (container.id = host and proc.name in (kubelet, containerd, containerd-shim, dbus-daemon, systemd))
+    - macro: libraries
+      condition: (
+        (fd.name = /etc/ld.so.cache)
+        or (fd.name startswith /usr/lib/)
+        or (fd.name startswith /lib/x86_64-linux-gnu/)
+        )
 
     - macro: file_read_exempt
       condition: (
-        process_exempt
+        libraries
+        or process_exempt
         or trusted_processes
         )
 
