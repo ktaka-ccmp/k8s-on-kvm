@@ -64,12 +64,26 @@ customRules:
         (proc.exepath = /usr/bin/kmod and proc.name = modprobe)
         )
 
-    - macro: place_holder_ad_hoc
-      condition: (
-        (proc.aname[4] = systemd and proc.aname[3] =90gpg-agent and proc.aname[2] = 90gpg-agent and proc.pname = gpgconf and proc.name in (gpg-agent, gpgconf))
+    - macro: host_sshd_initialize
+      condition: container.id = host and (
+           (proc.aname[5] = systemd and proc.aname[4] = systemd and proc.aname[3] = systemd
+           and proc.aname[2] = 90gpg-agent and proc.pname = gpgconf and proc.name in (gpgconf, gpg-agent))
+        or (proc.aname[5] = systemd and proc.aname[4] = systemd and proc.aname[3] = systemd
+           and proc.aname[2] = 90gpg-agent and proc.pname = 90gpg-agent and proc.name in (gpgconf, awk))
+        or (proc.aname[5] = systemd and proc.aname[4] = systemd and proc.aname[3] = 90gpg-agent
+           and proc.aname[2] = 90gpg-agent and proc.pname = gpgconf and proc.name in (gpgconf, gpg-agent))
+        or (proc.aname[3] = systemd and proc.aname[2] = systemd and proc.pname = systemd and proc.name startswith 30-systemd-envi)
+        or (proc.aname[4] = systemd and proc.aname[3] = systemd and proc.aname[2] = systemd and proc.pname = 90gpg-agent and proc.name in (gpgconf, awk))
+        or (proc.aname[3] = systemd and proc.aname[2] = systemd and proc.pname = systemd and proc.name = 90gpg-agent)
+        or (proc.aname[3] = systemd and proc.aname[2] = systemd and proc.pname = systemd and proc.name startswith 30-systemd-envi)
+        or (proc.aname[3] = systemd and proc.aname[2] = systemd and proc.pname = systemd and proc.name startswith systemd-xdg-aut)
+        or (proc.aname[2] = systemd and proc.pname = systemd and proc.name = systemctl)
+        or (proc.aname[3] = systemd and proc.aname[2] = sshd and proc.pname = sshd and proc.name = sshd)
+        or (proc.aname[2] = systemd and proc.pname = sshd and proc.name = sshd)
+        or (proc.pname = systemd and proc.name in (systemd, systemd-logind, systemd-user-ru))
         )
 
-    - macro: secure_k8s_apps
+    - macro: secure_k8s_apps_process
       condition: (k8s.ns.name in (dev,prd) and (
         (k8s.pod.name startswith dashboard- and proc.aname[3] = containerd-shim and proc.aname[2] = dumb-init and proc.pname = node and proc.name = node)
         or (k8s.pod.name startswith dashboard- and proc.aname[2] = containerd-shim and proc.pname = nginx and proc.name = nginx)
@@ -88,9 +102,9 @@ customRules:
         or kmod_loader
         or systemd_children
         or falco_children
-        or secure_k8s_apps
+        or secure_k8s_apps_process
+        or host_sshd_initialize
         )
-    #    or ad_hoc
 
     - rule: Process Creation
       desc: Detect unexpected Process Creation
@@ -141,6 +155,9 @@ customRules:
         or (proc.aname[3] = systemd and proc.aname[2] = containerd-shim and proc.pname = runc and proc.name startswith runc)
         or (proc.aname[2] = systemd and proc.pname = containerd-shim and proc.name startswith runc)
         )
+
+
+
 
     - macro: libraries
       condition: (

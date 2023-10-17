@@ -98,7 +98,7 @@ customRules:
     - macro: kubeshark
       condition: fd.port = 8897 and k8s.pod.name startswith kubeshark-worker-daemon-set- and k8s.ns.name = "shark"
 
-    - macro: secure_k8s_apps
+    - macro: secure_k8s_apps_network
       condition: k8s.pod.name startswith dashboard- and k8s.ns.name in (prd,dev) and (
         (evt.type in (connect,accept4) and fd.sip = "::1" and fd.sport = 3000) or
         (evt.type = accept4 and fd.cip = "10.244.0.0" and fd.sport = 8000)
@@ -113,7 +113,7 @@ customRules:
     # (2801,2802,6379,6443,8080,8181,8765) = (falcosidekick, falcosidekick-ui, falcosidekick-ui-redis, coredns, coredns, falco)
 
     - macro: expected_tcp_traffic
-      condition: >
+      condition: (
         fd.port in (expected_tcp_ports) or
         k8s_kubelet or
         k8s_apiserver or
@@ -123,13 +123,14 @@ customRules:
         falco_falcosidekick or
         falco_falcosidekick_ui or
         falco_redis or
-        secure_k8s_apps
+        secure_k8s_apps_network
+        )
 
     - rule: TCP Inbound
       desc: Detect unexpected Inbound TCP connection
       enabled: true
       condition: inbound_tcp and fd.l4proto=tcp and not expected_tcp_traffic
-      output: Unexpected Inbound TCP Traffic (host=%evt.hostname connection=%fd.name fd_proto=%fd.l4proto evt_type=%evt.type process=%proc.name command=%proc.cmdline proc_exepath=%proc.exepath parent=%proc.pname user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
+      output: Unexpected Inbound TCP Traffic (host=%evt.hostname connection=%fd.name fd_proto=%fd.l4proto cIP=%fd.cip sIP=%fd.sip cPort=%fd.cport sPort=%fd.sport evt_type=%evt.type process=%proc.name command=%proc.cmdline proc_exepath=%proc.exepath parent=%proc.pname user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
       priority: WARNING
       tags: [catch_all, inbound_tcp, network, ktaka]
 
@@ -137,7 +138,7 @@ customRules:
       desc: Detect unexpected Outbound TCP connection
       enabled: true
       condition: outbound_tcp and fd.l4proto=tcp and not expected_tcp_traffic
-      output: Unexpected Outbound TCP Traffic (host=%evt.hostname connection=%fd.name fd_proto=%fd.l4proto evt_type=%evt.type process=%proc.name command=%proc.cmdline proc_exepath=%proc.exepath parent=%proc.pname user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
+      output: Unexpected Outbound TCP Traffic (host=%evt.hostname connection=%fd.name fd_proto=%fd.l4proto cIP=%fd.cip sIP=%fd.sip cPort=%fd.cport sPort=%fd.sport evt_type=%evt.type process=%proc.name command=%proc.cmdline proc_exepath=%proc.exepath parent=%proc.pname user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
       priority: WARNING
       tags: [catch_all, outbound_tcp, network, ktaka]
 
