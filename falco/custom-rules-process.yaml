@@ -29,7 +29,6 @@ customRules:
 
     - macro: falco_children
       condition: k8s.ns.name = falco and k8s.pod.name startswith falco- 
-        )
 
     - macro: systemd_children
       condition: container.id = host and (
