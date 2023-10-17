@@ -1,0 +1,79 @@
+customRules:
+
+  custom-rules-file.yaml: |-
+
+    - macro: never_true
+      condition: (evt.num=0)
+
+    - macro: open_write
+      condition: (evt.type in (open,openat,openat2) and evt.is_open_write=true and fd.typechar='f' and fd.num>=0)
+
+    - macro: open_read
+      condition: (evt.type in (open,openat,openat2) and evt.is_open_read=true and fd.typechar='f' and fd.num>=0)
+
+    - macro: create_symlink
+      condition: (evt.type in (symlink, symlinkat) and evt.dir=<)
+
+    - macro: create_hardlink
+      condition: (evt.type in (link, linkat) and evt.dir=<)
+
+    - macro: process_exempt
+      condition: (
+        (container.id = host and (
+        (proc.name in (systemd))
+        or (proc.pname = systemd and proc.name in (kubelet, containerd, containerd-shim, dbus-daemon, systemd, systemd-journal, systemd-udevd))
+        or (proc.aname[2] = systemd and proc.pname = cron and proc.name = cron)
+        or (proc.aname[2] = systemd and proc.pname = systemd and proc.name = "(tmpfiles)")
+        or (proc.aname[3] = systemd and proc.aname[2] = cron and proc.pname = cron and proc.name = cron)
+        or (proc.aname[3] = systemd and proc.aname[2] = apt.systemd.dai and proc.pname = apt-config and proc.name = apt-config)
+        or (proc.aname[4] = systemd and proc.aname[3] = apt.systemd.dai and proc.aname[2] = apt.systemd.dai and proc.pname = apt-config and proc.name = apt-config)
+        or (proc.aname[4] = systemd and proc.aname[3] = apt.systemd.dai and proc.aname[2] = apt.systemd.dai and proc.pname = apt-get and proc.name = apt-get)
+        ))
+        or (k8s.pod.name startswith kube-apiserver- and proc.name = kube-apiserver)
+        or (k8s.pod.name startswith etcd- and proc.name = etcd)
+        or (k8s.pod.name startswith coredns- and proc.name = coredns)
+        or (k8s.pod.name startswith kube-proxy- and proc.name in (kube-proxy))
+        or (k8s.pod.name startswith kube-flannel- and proc.name in (flanneld))
+        or (k8s.pod.name startswith falco- and proc.name in (falco, grpc_global_tim, falcoctl-bin))
+        or (k8s.pod.name startswith falco-falcosidekick- and proc.name startswith falcosidekick)
+        or (k8s.pod.name startswith falco-falcosidekick-ui- and proc.name startswith runc)
+        or (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.name in (redis-server, node))
+        or (proc.aname[3] = systemd and proc.aname[2] = containerd-shim and proc.pname = runc and proc.name startswith runc)
+        or (proc.aname[2] = systemd and proc.pname = containerd-shim and proc.name startswith runc)
+        )
+
+    - macro: libraries
+      condition: (
+        (fd.name = /etc/ld.so.cache)
+        or (fd.name startswith /usr/lib/)
+        or (fd.name startswith /lib/x86_64-linux-gnu/)
+        )
+
+    - macro: file_read_exempt
+      condition: (
+        libraries
+        or process_exempt
+        or trusted_processes
+        )
+
+    - macro: file_write_exempt
+      condition: (
+        process_exempt
+        or trusted_processes
+        )
+
+    - rule: Unexpected File Read
+      desc: Detected unexpected File Read
+      enabled: true
+      condition: open_read and not file_read_exempt
+      output: Detected Unexpected File Read (host=%evt.hostname file=%fd.name pcmdline=%proc.pcmdline gparent=%proc.aname[2] ggparent=%proc.aname[3] gggparent=%proc.aname[4] aname[5]=%proc.aname[5] aname[6]=%proc.aname[6] aname[7]=%proc.aname[7] evt_type=%evt.type read=%evt.is_open_read write=%evt.is_open_write user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
+      priority: WARNING
+      tags: [catch_all, file, ktaka]
+
+    - rule: Unexpected File Write
+      desc: Detected unexpected File Write
+      enabled: true
+      condition: (open_write or create_symlink or create_hardlink) and not file_write_exempt
+      output: Detected Unexpected File  Write (host=%evt.hostname file=%fd.name pcmdline=%proc.pcmdline gparent=%proc.aname[2] ggparent=%proc.aname[3] gggparent=%proc.aname[4] aname[5]=%proc.aname[5] aname[6]=%proc.aname[6] aname[7]=%proc.aname[7] evt_type=%evt.type read=%evt.is_open_read write=%evt.is_open_write user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
+      priority: WARNING
+      tags: [catch_all, file, ktaka]
