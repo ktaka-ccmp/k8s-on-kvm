@@ -6,7 +6,7 @@ customRules:
       condition: (evt.type in (execve, execveat) and evt.dir=<)
 
     - macro: kubelet_children
-      condition: proc.pname = kubelet and proc.name in (iptables, ip6tables, mount)
+      condition: proc.pname = kubelet and proc.name in (iptables, ip6tables, mount, umount)
 
     - macro: kube_proxy_children
       condition: proc.pname = kube-proxy and proc.name in (iptables, ip6tables, iptables-restor, iptables-save, ip6tables-resto, ip6tables-save)
@@ -44,6 +44,7 @@ customRules:
         or (proc.aname[2] = systemd and proc.pname = dpkg-db-backup and proc.name in (basename, cmp, tar))
         or (proc.aname[4] = systemd and proc.aname[3] = apt.systemd.dai and proc.aname[2] = apt.systemd.dai and proc.pname = apt-config and proc.name = dpkg)
         or (proc.aname[3] = systemd and proc.aname[2] = systemd-udevd and proc.pname = systemd-udevd)
+        or (proc.aname[2] = systemd and proc.aname[1] = systemd-udevd and proc.name = systemd-udevd)
         or (proc.aname[5] = systemd and proc.aname[4] = systemd-udevd and proc.aname[3] = systemd-udevd
            and proc.aname[2] startswith ifupdown-hotplu and proc.pname startswith ifupdown-hotplu and proc.name = ifquery)
         )
