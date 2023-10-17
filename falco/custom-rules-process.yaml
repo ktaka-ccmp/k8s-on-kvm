@@ -51,7 +51,7 @@ customRules:
         (proc.exepath = /usr/bin/kmod and proc.name = modprobe)
         )
 
-    - macro: ad_hoc
+    - macro: place_holder_ad_hoc
       condition: (
         (proc.aname[4] = systemd and proc.aname[3] =90gpg-agent and proc.aname[2] = 90gpg-agent and proc.pname = gpgconf and proc.name in (gpg-agent, gpgconf))
         )
@@ -110,8 +110,11 @@ customRules:
         (container.id = host and (
         (proc.name in (systemd))
         or (proc.pname = systemd and proc.name in (kubelet, containerd, containerd-shim, dbus-daemon, systemd, systemd-journal, systemd-udevd))
-        or (proc.aname[3] = systemd and proc.aname[2] = cron and proc.pname = cron and proc.name = cron)
         or (proc.aname[2] = systemd and proc.pname = cron and proc.name = cron)
+        or (proc.aname[3] = systemd and proc.aname[2] = cron and proc.pname = cron and proc.name = cron)
+        or (proc.aname[3] = systemd and proc.aname[2] = apt.systemd.dai and proc.pname = apt-config and proc.name = apt-config)
+        or (proc.aname[4] = systemd and proc.aname[3] = apt.systemd.dai and proc.aname[2] = apt.systemd.dai and proc.pname = apt-config and proc.name = apt-config)
+        or (proc.aname[4] = systemd and proc.aname[3] = apt.systemd.dai and proc.aname[2] = apt.systemd.dai and proc.pname = apt-get and proc.name = apt-get)
         ))
         or (k8s.pod.name startswith kube-apiserver- and proc.name = kube-apiserver)
         or (k8s.pod.name startswith etcd- and proc.name = etcd)
