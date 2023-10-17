@@ -2,88 +2,7 @@ customRules:
 
   custom-rules-process.yaml: |-
 
-    - macro: spawned_process
-      condition: (evt.type in (execve, execveat) and evt.dir=<)
-
-    - macro: kubelet_children
-      condition: proc.pname = kubelet and proc.name in (iptables, ip6tables, mount, umount)
-
-    - macro: kube_proxy_children
-      condition: proc.pname = kube-proxy and proc.name in (iptables, ip6tables, iptables-restor, iptables-save, ip6tables-resto, ip6tables-save)
-
-    - macro: flanneld_children
-      condition: (proc.pname = flanneld and proc.name in (iptables))
-        or container.id = host and (
-        (proc.aname[2] = flannel and proc.pname = bridge and proc.name = host-local)
-        or (proc.pname = flannel and proc.name = bridge)
-        )
-
-    - macro: containerd_children
-      condition: (
-        (proc.pname = containerd and proc.name in (flannel, loopback, portmap, containerd-shim))
-        or (proc.pname = containerd-shim and proc.name in (runc))
-        or (proc.aname[3] = systemd and proc.aname[2] = containerd-shim and proc.pname = runc and proc.name = exe and proc.exepath = /usr/sbin/runc)
-        or (proc.aname[3] = systemd and proc.aname[2] = containerd-shim and proc.pname = runc and proc.name = 6 and proc.cmdline = "6 init")
-        or (proc.aname[3] = systemd and proc.aname[2] = containerd and proc.pname = containerd-shim and proc.name = containerd-shim)
-        )
-
-    - macro: falco_children
-      condition: k8s.ns.name = falco and k8s.pod.name startswith falco- 
-
-    - macro: systemd_children
-      condition: container.id = host and (
-        (proc.pname = systemd and proc.name in (sa1, sadc, apt-helper, apt.systemd.dai, systemd-tmpfile, dpkg-db-backup, logrotate, sa2, e2scrub_all, fstrim))
-        or (proc.aname[4] = systemd and proc.aname[3] = apt.systemd.dai and proc.aname[2] = apt.systemd.dai and proc.pname = apt-config and proc.name = dpkg)
-        or (proc.aname[4] = systemd and proc.aname[3] = apt.systemd.dai and proc.aname[2] = apt.systemd.dai and proc.pname = apt-get and proc.name = dpkg)
-        or (proc.aname[3] = systemd and proc.aname[2] = apt.systemd.dai and proc.pname = apt-config and proc.name in (dpkg))
-        or (proc.aname[3] = systemd and proc.aname[2] = apt.systemd.dai and proc.pname = apt.systemd.dai and proc.name in (apt-config, apt-get, cmp, date))
-        or (proc.aname[3] = systemd and proc.aname[2] = sa2 and proc.pname = xargs and proc.name in (rm, xargs))
-        or (proc.aname[2] = systemd and proc.pname = apt-helper and proc.name in (apt-helper, systemctl))
-        or (proc.aname[2] = systemd and proc.pname = apt.systemd.dai and proc.name in (apt-config, apt.systemd.dai, flock))
-        or (proc.aname[2] = systemd and proc.pname = sa2 and proc.name in (date, find, grep, sar.sysstat, xargs))
-        or (proc.aname[2] = systemd and proc.pname = dpkg-db-backup and proc.name in (basename, cmp, tar))
-        or (proc.aname[4] = systemd and proc.aname[3] = apt.systemd.dai and proc.aname[2] = apt.systemd.dai and proc.pname = apt-config and proc.name = dpkg)
-        or (proc.aname[3] = systemd and proc.aname[2] = systemd-udevd and proc.pname = systemd-udevd)
-        or (proc.aname[2] = systemd and proc.aname[1] = systemd-udevd and proc.name = systemd-udevd)
-        or (proc.aname[5] = systemd and proc.aname[4] = systemd-udevd and proc.aname[3] = systemd-udevd
-           and proc.aname[2] startswith ifupdown-hotplu and proc.pname startswith ifupdown-hotplu and proc.name = ifquery)
-        )
-
-    - macro: cron_children
-      condition: container.id = host and (
-        (proc.aname[4] = cron and proc.aname[3] = cron and proc.aname[2] = sh and proc.pname = run-parts and proc.name in (apt-compat, aptitude, dpkg, logrotate, sysstat))
-        or (proc.aname[4] = cron and proc.aname[3] = sh and proc.aname[2] = run-parts and proc.pname = aptitude and proc.name in (cmp))
-        or (proc.aname[4] = systemd and proc.aname[3] = cron and proc.aname[2] = cron and proc.pname = sh and proc.name in (debian-sa1, run-parts))
-        or (proc.aname[3] = systemd and proc.aname[2] = cron  and proc.pname = cron and proc.name in (sh))
-        )
-
-    #   or (proc.aname[3] =  and proc.aname[2] =  and proc.pname =  and proc.name in ())
-
-    - macro: kmod_loader
-      condition: (
-        (proc.exepath = /usr/bin/kmod and proc.name = modprobe)
-        )
-
-    - macro: host_sshd_initialize
-      condition: container.id = host and (
-           (proc.aname[5] = systemd and proc.aname[4] = systemd and proc.aname[3] = systemd
-           and proc.aname[2] = 90gpg-agent and proc.pname = gpgconf and proc.name in (gpgconf, gpg-agent))
-        or (proc.aname[5] = systemd and proc.aname[4] = systemd and proc.aname[3] = systemd
-           and proc.aname[2] = 90gpg-agent and proc.pname = 90gpg-agent and proc.name in (gpgconf, awk))
-        or (proc.aname[5] = systemd and proc.aname[4] = systemd and proc.aname[3] = 90gpg-agent
-           and proc.aname[2] = 90gpg-agent and proc.pname = gpgconf and proc.name in (gpgconf, gpg-agent))
-        or (proc.aname[3] = systemd and proc.aname[2] = systemd and proc.pname = systemd and proc.name startswith 30-systemd-envi)
-        or (proc.aname[4] = systemd and proc.aname[3] = systemd and proc.aname[2] = systemd and proc.pname = 90gpg-agent and proc.name in (gpgconf, awk))
-        or (proc.aname[3] = systemd and proc.aname[2] = systemd and proc.pname = systemd and proc.name = 90gpg-agent)
-        or (proc.aname[3] = systemd and proc.aname[2] = systemd and proc.pname = systemd and proc.name startswith 30-systemd-envi)
-        or (proc.aname[3] = systemd and proc.aname[2] = systemd and proc.pname = systemd and proc.name startswith systemd-xdg-aut)
-        or (proc.aname[2] = systemd and proc.pname = systemd and proc.name = systemctl)
-        or (proc.aname[3] = systemd and proc.aname[2] = sshd and proc.pname = sshd and proc.name = sshd)
-        or (proc.aname[2] = systemd and proc.pname = sshd and proc.name = sshd)
-        or (proc.pname = systemd and proc.name in (systemd, systemd-logind, systemd-user-ru))
-        )
-
-    - macro: secure_k8s_apps_process
+    - macro: apps_secure_k8s
       condition: (k8s.ns.name in (dev,prd) and (
         (k8s.pod.name startswith dashboard- and proc.aname[3] = containerd-shim and proc.aname[2] = dumb-init and proc.pname = node and proc.name = node)
         or (k8s.pod.name startswith dashboard- and proc.aname[2] = containerd-shim and proc.pname = nginx and proc.name = nginx)
@@ -91,25 +10,137 @@ customRules:
         or (k8s.pod.name startswith db- and proc.aname[2] = systemd and proc.pname = containerd-shim and proc.name = redis-server)
         ))
 
-
-    - macro: trusted_processes
+    - macro: user_apps
       condition: (
-        kubelet_children
-        or kube_proxy_children
-        or flanneld_children
-        or containerd_children
-        or cron_children
-        or kmod_loader
-        or systemd_children
-        or falco_children
-        or secure_k8s_apps_process
-        or host_sshd_initialize
+        apps_secure_k8s
+        )
+
+    #
+    #
+    #
+
+    - macro: spawned_process
+      condition: (evt.type in (execve, execveat) and evt.dir=<)
+
+    - macro: proc_kube_proxy
+      condition: k8s.ns.name = kube-system and k8s.pod.name startswith kube-proxy- and (
+        proc.exepath = /usr/sbin/xtables-nft-multi
+        )
+
+    - macro: proc_kube_flannel
+      condition: k8s.ns.name = kube-flannel and k8s.pod.name startswith kube-flannel-ds- and (
+        proc.exepath = /sbin/xtables-nft-multi
+        )
+
+    - macro: proc_flannel
+      condition: container.id = host and (
+        (proc.exepath = /opt/cni/bin/host-local and proc.pname = bridge and proc.aname[2] = flannel)
+        or (proc.exepath = /opt/cni/bin/bridge and proc.pname = flannel)
+        or (proc.exepath = /opt/cni/bin/flannel and proc.pname = containerd)
+        or (proc.exepath = /opt/cni/bin/loopback and proc.pname = containerd)
+        or (proc.exepath = /opt/cni/bin/portmap and proc.pname = containerd)
+        )
+
+    - macro: proc_falco
+      condition: k8s.ns.name = falco and k8s.pod.name startswith falco-falcosidekick-ui- and (
+        proc.exepath = /app/falcosidekick-ui
+        )
+
+    - macro: proc_kubelet
+      condition: container.id = host and proc.pname = kubelet and (
+        proc.exepath = /sbin/xtables-nft-multi
+        or proc.exepath = /usr/sbin/xtables-nft-multi
+        or proc.exepath = /usr/bin/mount
+        or proc.exepath = /usr/bin/umount
+        )
+
+    - macro: proc_cron
+      condition: container.id = host and (
+        (proc.name in (apt-compat, aptitude, dpkg, logrotate, sysstat) and proc.pname = run-parts and proc.aname[2] = sh and proc.aname[3] = cron and proc.aname[4] = cron)
+        or (proc.name = debian-sa1 and proc.pname = sh and proc.aname[2] = cron and proc.aname[3] = cron and proc.aname[4] = systemd)
+        or (proc.name = sh and proc.pname = cron  and proc.aname[2] = cron and proc.aname[3] = systemd)
+        or (proc.name = mv and proc.pname = savelog and proc.aname[2] = aptitude and proc.aname[3] = run-parts)
+        or proc.exepath = /usr/bin/run-parts
+        or proc.exepath = /usr/bin/cmp
+        or proc.exepath = /usr/bin/basename
+        or proc.exepath = /usr/bin/dirname
+        )
+
+    - macro: proc_kmod
+      condition: container.id = host and (
+        (proc.exepath = /usr/bin/kmod and proc.name = modprobe)
+        )
+
+    - macro: proc_containerd
+      condition: container.id = host and (
+        (proc.exepath = /usr/local/bin/containerd-shim-runc-v2 and proc.name = containerd-shim)
+        or (proc.exepath = /usr/sbin/runc and proc.name = exe)
+        or (proc.exepath = /usr/sbin/runc and proc.name = runc)
+        or (proc.cmdline = "6 init" and proc.name = 6 and proc.pname = runc)
+        )
+
+    - macro: proc_systemd_dai
+      condition: container.id = host and (
+        (proc.exepath = /usr/bin/apt-config and proc.name = apt-config)
+        or (proc.exepath = /usr/bin/apt-get and proc.name = apt-get)
+        or (proc.exepath = /usr/bin/cmp and proc.name = cmp)
+        or (proc.exepath = /usr/bin/date and proc.name = date)
+        or (proc.exepath = /usr/bin/dpkg and proc.name = dpkg)
+        or (proc.exepath = /usr/bin/flock and proc.name = flock)
+        or proc.name = apt.systemd.dai
+        )
+
+    - macro: proc_systemd
+      condition: container.id = host and (
+        (proc.pname = systemd and proc.name in (sa1, sadc, apt-helper, systemd-tmpfile, dpkg-db-backup, logrotate, sa2, e2scrub_all, fstrim))
+        or (proc.aname[3] = systemd and proc.aname[2] = sa2 and proc.pname = xargs and proc.name in (rm, xargs))
+        or (proc.aname[2] = systemd and proc.pname = apt-helper and proc.name in (apt-helper, systemctl))
+        or (proc.aname[2] = systemd and proc.pname = sa2 and proc.name in (date, find, grep, sar.sysstat, xargs))
+        or (proc.aname[2] = systemd and proc.pname = dpkg-db-backup and proc.name in (basename, cmp, tar))
+        or (proc.aname[3] = systemd and proc.aname[2] = systemd-udevd and proc.pname = systemd-udevd)
+        or (proc.aname[2] = systemd and proc.aname[1] = systemd-udevd and proc.name = systemd-udevd)
+        or (proc.aname[5] = systemd and proc.aname[4] = systemd-udevd and proc.aname[3] = systemd-udevd
+           and proc.aname[2] startswith ifupdown-hotplu and proc.pname startswith ifupdown-hotplu and proc.name = ifquery)
+        or  proc.exepath = /usr/lib/systemd/systemd
+        )
+
+    - macro: proc_sshd_initialize
+      condition: container.id = host and (
+        (proc.exepath in (/usr/bin/gpgconf, /usr/bin/gpg-agent))
+        or (proc.pname = systemd and proc.name = 90gpg-agent)
+        or (proc.pname = 90gpg-agent and proc.name = awk)
+        or proc.exepath = /usr/lib/systemd/user-environment-generators/30-systemd-environment-d-generator
+        or proc.exepath = /usr/lib/systemd/user-generators/systemd-xdg-autostart-generator
+        or proc.exepath = /usr/lib/systemd/systemd-sysctl
+        or proc.exepath = /usr/lib/systemd/systemd-user-runtime-dir
+        or proc.exepath = /usr/bin/systemd-tmpfiles
+        or proc.exepath = /usr/bin/cat
+        or proc.exepath = /usr/bin/env
+        or proc.exepath = /usr/bin/id
+        or proc.exepath = /usr/bin/mesg
+        or proc.exepath = /usr/bin/systemctl
+        or proc.exepath = /usr/bin/uname
+        )
+
+    - macro: proc_trusted
+      condition: (
+        proc_kube_proxy
+        or proc_kube_flannel
+        or proc_flannel
+        or proc_falco
+        or proc_kubelet
+        or proc_cron
+        or proc_kmod
+        or proc_containerd
+        or proc_systemd_dai
+        or proc_systemd
+        or proc_sshd_initialize
         )
 
     - rule: Process Creation
       desc: Detect unexpected Process Creation
       enabled: true
-      condition: spawned_process and not trusted_processes
+      condition: spawned_process and not (proc_trusted or user_apps)
       output: Process spawned (host=%evt.hostname parent_exe=%proc.pexe parent_exepath=%proc.pexepath pcmdline=%proc.pcmdline gparent=%proc.aname[2] ggparent=%proc.aname[3] aname[4]=%proc.aname[4] aname[5]=%proc.aname[5] aname[6]=%proc.aname[6] aname[7]=%proc.aname[7] evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline pcomand=%proc.pcmdline gpcommand=%proc.acmdline[2] terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
       priority: WARNING
       tags: [catch_all, process, ktaka]
