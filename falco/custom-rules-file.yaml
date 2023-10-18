@@ -49,17 +49,56 @@ customRules:
         or (fd.name startswith /lib/x86_64-linux-gnu/)
         )
 
+    - macro: file_write
+      condition: (
+        (container.id = host and (
+        proc.exepath = /usr/bin/kubelet
+        or (proc.exepath = /usr/bin/apt-config and fd.name = /dev/null)
+        or (proc.exepath = /usr/bin/apt-get and fd.name = /dev/null)
+        or (proc.exepath = /usr/bin/gpgconf and fd.name = /dev/null)
+        or (proc.exepath = /usr/bin/udevadm and fd.name = /proc/self/oom_score_adj)
+        or (proc.exepath = /usr/bin/dash and fd.name in (/dev/null, /run/motd.dynamic.new))
+        or (proc.exepath = /usr/bin/bash and fd.name in (/dev/tty, /root/.bash_history))
+        or (proc.exepath = /usr/lib/systemd/systemd and fd.name startswith /run/systemd/transient/)
+        or (proc.exepath = /usr/lib/systemd/systemd and fd.name startswith /sys/fs/cgroup/kubepods.slice/)
+        or (proc.exepath = /usr/lib/systemd/systemd and fd.name startswith /sys/fs/cgroup/system.slice/)
+        or (proc.exepath = /usr/lib/systemd/systemd-journald and fd.name startswith /run/systemd/journal/streams/)
+        or (proc.exepath = /usr/lib/systemd/systemd-logind and fd.name startswith /run/systemd/sessions/)
+        or (proc.exepath = /usr/lib/systemd/systemd-logind and fd.name startswith /run/systemd/users/)
+        or (proc.exepath = /usr/local/bin/containerd and fd.name startswith /run/containerd/)
+        or (proc.exepath = /usr/local/bin/containerd and fd.name startswith /proc/self/fd/)
+        or (proc.exepath = /usr/local/bin/containerd and fd.name startswith /var/lib/containerd/)
+        or (proc.exepath = /usr/local/bin/containerd and fd.name startswith /var/log/pods/)
+        or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2 and fd.name startswith /run/containerd/)
+        or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2 and fd.name startswith /proc/self/fd/)
+        or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2 and fd.name startswith /sys/fs/cgroup/)
+        or (proc.exepath = /usr/sbin/runc and fd.name startswith /sys/fs/cgroup/)
+        or (proc.exepath = /usr/sbin/runc and fd.name startswith /run/containerd/)
+        or (proc.exepath = /usr/sbin/runc and fd.name startswith /proc/self/fd/)
+        or (proc.exepath = /usr/sbin/runc and fd.name = /dev/null)
+        or (proc.exepath = /usr/sbin/ssd and fd.name in (/dev/null, /dev/ptmx, /dev/pts/0, /dev/tty, /proc/self/oom_score_adj, /var/log/lastlog, /var/log/wtmp, /var/run/utmp))
+        ))
+        or (k8s.ns.name = kube-flannel and k8s.pod.name startswith kube-flannel and proc.exepath = /opt/bin/flanneld and fd.name = /dev/null)
+        or (k8s.ns.name = falco and k8s.pod.name startswith falco-falcosidekick-ui-redis-
+           and proc.exepath = /opt/redis-stack/bin/redis-server and fd.name startswith /data/)
+        or (k8s.ns.name = falco and k8s.pod.name startswith falco-falcosidekick-ui-redis-
+           and proc.exepath = /opt/redis-stack/nodejs/bin/node and fd.name startswith /redisinsight/commands/)
+        or (k8s.ns.name = falco and k8s.pod.name startswith falco-falcosidekick-ui-redis-
+           and proc.exepath = /opt/redis-stack/nodejs/bin/node and fd.name startswith /redisinsight/content/)
+        or (k8s.ns.name = falco and k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and fd.name startswith /root/.sigstore/)
+        or (k8s.ns.name = falco and k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and fd.name startswith /rulesfiles/)
+        or (k8s.ns.name = falco and k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and fd.name startswith /tmp/falcoctl-)
+        or (k8s.ns.name = falco and k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and fd.name startswith /root/.sigstore/)
+        )
+
     - macro: file_read_exempt
       condition: (
         libraries
-        or process_exempt
-        or trusted_processes
         )
 
     - macro: file_write_exempt
       condition: (
-        process_exempt
-        or trusted_processes
+        file_write
         )
 
     - rule: Unexpected File Read

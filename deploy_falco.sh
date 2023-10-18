@@ -14,8 +14,9 @@ helm  delete falco -n falco
 sleep 1
 
 helm install falco falcosecurity/falco -f falco/falco-values-kmod-norule.yaml --namespace falco --create-namespace \
--f falco/custom-rules-network.yaml -f falco/custom-rules-process.yaml
+-f falco/custom-rules-network.yaml -f falco/custom-rules-file.yaml -f falco/custom-rules-process.yaml
 
+#-f falco/custom-rules-network.yaml -f falco/custom-rules-process.yaml
 #-f falco/custom-rules-network.yaml -f falco/custom-rules-file.yaml -f falco/custom-rules-process.yaml
 
 # helm install falco falcosecurity/falco -f falco/falco-values-kmod-norule.yaml -f falco/custom-rules-network.yaml -f falco/custom-rules-process.yaml --namespace falco --create-namespace
