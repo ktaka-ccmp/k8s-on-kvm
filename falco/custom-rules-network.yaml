@@ -132,7 +132,7 @@ customRules:
       condition: inbound_tcp and fd.l4proto=tcp and not expected_tcp_traffic
       output: Unexpected Inbound TCP Traffic (host=%evt.hostname connection=%fd.name fd_proto=%fd.l4proto cIP=%fd.cip sIP=%fd.sip cPort=%fd.cport sPort=%fd.sport evt_type=%evt.type process=%proc.name command=%proc.cmdline proc_exepath=%proc.exepath parent=%proc.pname user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
       priority: WARNING
-      tags: [catch_all, inbound_tcp, network, ktaka]
+      tags: [catch_all, tcp_inbound, network, ktaka]
 
     - rule: TCP Outbound
       desc: Detect unexpected Outbound TCP connection
@@ -140,7 +140,7 @@ customRules:
       condition: outbound_tcp and fd.l4proto=tcp and not expected_tcp_traffic
       output: Unexpected Outbound TCP Traffic (host=%evt.hostname connection=%fd.name fd_proto=%fd.l4proto cIP=%fd.cip sIP=%fd.sip cPort=%fd.cport sPort=%fd.sport evt_type=%evt.type process=%proc.name command=%proc.cmdline proc_exepath=%proc.exepath parent=%proc.pname user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
       priority: WARNING
-      tags: [catch_all, outbound_tcp, network, ktaka]
+      tags: [catch_all, tcp_outbound, network, ktaka]
 
     - list: expected_udp_ports
       items: [1]
@@ -178,7 +178,7 @@ customRules:
       condition: inbound_udp and fd.l4proto=udp and not expected_udp_traffic
       output: Unexpected Inbound UDP Traffic (host=%evt.hostname connection=%fd.name fd_proto=%fd.l4proto evt_type=%evt.type process=%proc.name command=%proc.cmdline proc_exepath=%proc.exepath parent=%proc.pname user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
       priority: WARNING
-      tags: [catch_all, inbound_udp, network, ktaka]
+      tags: [catch_all, udp_inbound, network, ktaka]
 
     - rule: UDP Outboud
       desc: Detect unexpected Outbound UDP Traffic
@@ -186,4 +186,4 @@ customRules:
       condition: outbound_udp and fd.l4proto=udp and not expected_udp_traffic
       output: Unexpected Outbound UDP Traffic (host=%evt.hostname connection=%fd.name fd_proto=%fd.l4proto evt_type=%evt.type process=%proc.name command=%proc.cmdline proc_exepath=%proc.exepath parent=%proc.pname user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
       priority: WARNING
-      tags: [catch_all, outbound_udp, network, ktaka]
+      tags: [catch_all, udp_outbound, network, ktaka]
