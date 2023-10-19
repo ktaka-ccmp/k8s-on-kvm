@@ -2,6 +2,21 @@
 customRules:
 
   custom-rules-network.yaml: |-
+    - macro: secure_k8s_apps_network
+      condition: k8s.ns.name in (prd,dev) and (
+        k8s.pod.name startswith dashboard- and (
+          (evt.type in (connect,accept4) and fd.sip = "::1" and fd.sport = 3000)
+          or (evt.type = accept4 and fd.cip = "10.244.0.0" and fd.sport = 8000)
+        )
+        or k8s.pod.name startswith db- and (
+          (evt.type = accept4 and fd.sport = 6379 and proc.exepath = /usr/local/bin/redis-server)
+        )
+        or k8s.pod.name startswith app- and (
+          (evt.type = accept4 and fd.sport = 80 and proc.name = gunicorn)
+          or (evt.type = connect and fd.sport = 6379 and proc.name = gunicorn)
+        )
+        )
+
     - macro: never_true
       condition: (evt.num=0)
 
@@ -97,12 +112,6 @@ customRules:
 
     - macro: kubeshark
       condition: fd.port = 8897 and k8s.pod.name startswith kubeshark-worker-daemon-set- and k8s.ns.name = "shark"
-
-    - macro: secure_k8s_apps_network
-      condition: k8s.pod.name startswith dashboard- and k8s.ns.name in (prd,dev) and (
-        (evt.type in (connect,accept4) and fd.sip = "::1" and fd.sport = 3000) or
-        (evt.type = accept4 and fd.cip = "10.244.0.0" and fd.sport = 8000)
-        )
 
     - macro: k8s_kubelet
       condition: proc.name = "kubelet" and (

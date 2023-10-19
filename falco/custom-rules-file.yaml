@@ -2,14 +2,88 @@ customRules:
 
   custom-rules-file.yaml: |-
 
-    - macro: apps_secure_k8s_file
+    - macro: apps_secure_k8s_file_read
       condition: (k8s.ns.name in (dev,prd) and (
-        (k8s.pod.name startswith db- and proc.exepath = /usr/local/bin/redis-server and fd.name in (/proc/self/stat))
+        (k8s.pod.name startswith db- and proc.exepath = /usr/local/bin/redis-server and fd.name startswith /proc/self/)
+        or (k8s.pod.name startswith app- and proc.name = gunicorn and fd.name in (/etc/host.conf, /etc/hosts, /etc/nsswitch.conf, /etc/resolv.conf
+        ,/app/templates/index.html
+        ,/app/static/stylesheets/style.css
+        ))
+        or (k8s.pod.name startswith app- and proc.name = gunicorn and fd.name pmatch (/usr/local/lib/python3.9))
+        or (k8s.pod.name startswith db- and proc.exepath = /usr/local/bin/redis-server and fd.name startswith /proc/self/)
+        or (k8s.pod.name startswith db- and proc.exepath = /usr/local/bin/redis-server and fd.name startswith /data/)
+        or (k8s.pod.name startswith dashboard- and proc.exepath = /usr/sbin/nginx and fd.name in (/etc/nginx/conf.d/htpasswd))
+        or (k8s.pod.name startswith dashboard- and proc.exepath = /usr/sbin/nginx and fd.name pmatch (/var/tmp/nginx/proxy))
+        or (k8s.pod.name startswith dashboard- and proc.exepath = /usr/bin/node and fd.name in (
+        /dev/ptmx
+        ,/webshell/static/css/lib/bootstrap/bootstrap.min.css
+        ,/webshell/static/css/lib/font-awesome/font-awesome.min.css
+        ,/webshell/static/css/lib/jqueryui/jquery-ui.min.css
+        ,/webshell/static/css/lib/lobipanel/lobipanel.min.css
+        ,/webshell/static/css/main.css
+        ,/webshell/static/css/separate/pages/widgets.min.css
+        ,/webshell/static/css/separate/vendor/lobipanel.min.css
+        ,/webshell/static/fonts/glyphicons-halflings-regular.woff2
+        ,/webshell/static/fonts/Proxima_Nova_Bold.woff2
+        ,/webshell/static/fonts/Proxima_Nova_Light.woff2
+        ,/webshell/static/fonts/Proxima_Nova_Regular_Italic.woff2
+        ,/webshell/static/fonts/Proxima_Nova_Regular.woff2
+        ,/webshell/static/fonts/Proxima_Nova_Semibold.woff2
+        ,/webshell/static/fonts/startui.woff
+        ,/webshell/static/img/avatar-2-64.png
+        ,/webshell/static/img/flags/4x3/us.svg
+        ,/webshell/static/img/logo-2-mob.png
+        ,/webshell/static/img/logo-2.png
+        ,/webshell/static/img/photo-64-1.jpg
+        ,/webshell/static/img/photo-64-2.jpg
+        ,/webshell/static/img/photo-64-3.jpg
+        ,/webshell/static/img/photo-64-4.jpg
+        ,/webshell/static/img/statistic-box-green.png
+        ,/webshell/static/img/statistic-box-grid.png
+        ,/webshell/static/img/statistic-box-purple.png
+        ,/webshell/static/img/statistic-box-red.png
+        ,/webshell/static/img/statistic-box-yellow.png
+        ,/webshell/static/index.html
+        ,/webshell/static/js/app.js
+        ,/webshell/static/js/lib/bootstrap/bootstrap.min.js
+        ,/webshell/static/js/lib/jquery/jquery-3.2.1.min.js
+        ,/webshell/static/js/lib/jqueryui/jquery-ui.min.js
+        ,/webshell/static/js/lib/lobipanel/lobipanel.min.js
+        ,/webshell/static/js/lib/match-height/jquery.matchHeight.min.js
+        ,/webshell/static/js/lib/popper/popper.min.js
+        ,/webshell/static/js/lib/tether/tether.min.js
+        ,/webshell/static/js/plugins.js
+        ,/webshell/static/assets/css/demo_1/style.css
+        ,/webshell/static/assets/css/shared/style.css
+        ,/webshell/static/assets/images/logo_mini.svg
+        ,/webshell/static/assets/images/logo.svg
+        ,/webshell/static/assets/images/profile/female/image_2.png
+        ,/webshell/static/assets/images/profile/female/image_6.png
+        ,/webshell/static/assets/images/profile/male/image_10.png
+        ,/webshell/static/assets/images/profile/male/image_1.png
+        ,/webshell/static/assets/images/profile/male/image_3.png
+        ,/webshell/static/assets/images/profile/male/image_4.png
+        ,/webshell/static/assets/images/profile/male/image_5.png
+        ,/webshell/static/assets/images/profile/male/image_6.png
+        ,/webshell/static/assets/images/social-icons/instagram.svg
+        ,/webshell/static/assets/js/charts/chartjs.addon.js
+        ,/webshell/static/assets/js/dashboard.js
+        ,/webshell/static/assets/js/template.js
+        ,/webshell/static/assets/vendors/apexcharts/apexcharts.min.js
+        ,/webshell/static/assets/vendors/chartjs/Chart.min.js
+        ,/webshell/static/assets/vendors/iconfonts/mdi/css/materialdesignicons.css
+        ,/webshell/static/assets/vendors/iconfonts/mdi/fonts/materialdesignicons-webfont.woff2
+        ,/webshell/static/assets/vendors/js/core.js
+        ))
         ))
 
-    - macro: user_apps_file
+    #
+    #
+    #
+
+    - macro: user_apps_file_read
       condition: (
-        apps_secure_k8s_file
+        apps_secure_k8s_file_read
         )
 
     - macro: never_true
@@ -38,6 +112,21 @@ customRules:
       condition: (
         (container.id = host and (
            proc.exepath = /usr/bin/kubelet
+           or (proc.exepath = /usr/bin/cmp and proc.pname startswith apt.systemd.dai and fd.name in (/proc/self/maps, /var/backups/apt.extended_states.0, /var/lib/apt/extended_states))
+           or (proc.exepath = /usr/bin/date and proc.pname startswith apt.systemd.dai and fd.name in (/etc/localtime))
+           or (proc.exepath = /usr/bin/apt-config and fd.name = /dev/null)
+           or (proc.exepath = /usr/bin/apt-config and fd.name pmatch (/etc/apt/apt.conf.d/))
+           or (proc.exepath = /usr/bin/apt-config and fd.name pmatch (/usr/share/dpkg/))
+           or (proc.exepath = /usr/bin/apt-get and fd.name in (/dev/null, /etc/localtime, /etc/machine-id))
+           or (proc.exepath = /usr/bin/apt-get and fd.name pmatch (/etc/apt))
+           or (proc.exepath = /usr/bin/apt-get and fd.name pmatch (/usr/share/dpkg/))
+           or (proc.exepath = /usr/bin/apt-get and fd.name pmatch (/var/cache/apt/))
+           or (proc.exepath = /usr/bin/apt-get and fd.name pmatch (/var/lib/apt/))
+           or (proc.exepath = /usr/bin/apt-get and fd.name pmatch (/var/lib/dpkg/))
+           or (proc.exepath = /usr/bin/apt-helper and fd.name pmatch (/etc/apt))
+           or (proc.exepath = /usr/bin/apt-helper and fd.name pmatch (/usr/share/dpkg/))
+           or (proc.exepath = /usr/bin/dpkg and fd.name pmatch (/etc/dpkg/))
+           or (proc.exepath = /usr/bin/dpkg and fd.name in (/proc/filesystems))
            or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2 and fd.name in (/dev/null, /proc/sys/net/core/somaxconn, /usr/local/bin/containerd-shim-runc-v2))
            or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2 and fd.name pmatch (/run/containerd/))
            or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2 and fd.name pmatch (/proc/self/))
@@ -48,7 +137,8 @@ customRules:
            or (proc.exepath = /usr/local/bin/containerd and fd.name pmatch (/run/containerd/))
            or (proc.exepath = /usr/local/bin/containerd and fd.name pmatch (/var/run/netns/))
            or (proc.exepath = /usr/local/bin/containerd and fd.name in (/dev/null))
-           or (proc.exepath = /usr/lib/systemd/systemd and fd.name in (//bin, /dev/null, //usr/bin/bash, //usr/bin, //usr, //sys, //run))
+           or (proc.exepath = usr/bin/systemctl and fd.name startswith /proc/filesystems)
+           or (proc.exepath = /usr/lib/systemd/systemd and fd.name in (//bin, /dev/null, //usr/bin/bash, //usr/bin, //usr, //sys, //run, /var/lib/systemd/timers/stamp-apt-daily.timer))
            or (proc.exepath = /usr/lib/systemd/systemd and fd.name startswith /proc/)
            or (proc.exepath = /usr/lib/systemd/systemd and fd.name pmatch (/sys/dev/block))
            or (proc.exepath = /usr/lib/systemd/systemd and fd.name pmatch (/sys/devices/))
@@ -94,7 +184,7 @@ customRules:
         or (proc.exepath = /usr/sbin/runc and fd.name in (/dev/null, /etc/localtime, /usr/sbin/runc))
         or (proc.exepath = /usr/sbin/runc and fd.name in (/, /etc/group, /etc/passwd) and proc.name startswith runc:)
         or (k8s.ns.name = falco and (
-           (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falco and fd.name in (/etc/hosts, /etc/nsswitch.conf, /etc/resolv.conf, /sys/devices/system/cpu/online))
+           (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falco and fd.name in (/etc/hosts, /etc/nsswitch.conf, /etc/resolv.conf, /etc/host.conf, /sys/devices/system/cpu/online))
            or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and fd.name startswith /root/.sigstore/)
            or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and fd.name startswith /rulesfiles/)
            or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and fd.name startswith /tmp/falcoctl-)
@@ -176,7 +266,7 @@ customRules:
       condition: (
         file_read
         or libraries
-        or user_apps_file
+        or user_apps_file_read
         )
 
     - macro: file_write_exempt
