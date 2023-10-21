@@ -108,7 +108,7 @@ customRules:
         or (fd.name startswith /lib/x86_64-linux-gnu/)
         )
 
-    - macro: file_read
+    - macro: file_read_host
       condition: (
         (container.id = host and (
            proc.exepath = /usr/bin/kubelet
@@ -120,7 +120,6 @@ customRules:
            or (proc.exepath = /usr/bin/find and proc.pname = sa2 and fd.name in (/proc/filesystems, /usr/bin))
            or (proc.exepath = /usr/bin/grep and proc.pname = sa2 and fd.name in (/proc/self/maps))
            or (proc.exepath = /usr/bin/xargs and proc.aname[2] = sa2 and fd.name in (/dev/null))
-           or (proc.exepath = /usr/bin/sar.sysstat and proc.pname = sa2 and fd.name in (/etc/localtime, /var/log/sysstat/sa19))
            or (proc.exepath = /usr/bin/tar and proc.pname = dpkg-db-backup and fd.name in (/etc/passwd, /etc/group, /etc/nsswitch.conf, /proc/filesystems))
            or (proc.exepath = /usr/bin/tar and proc.pname = dpkg-db-backup and fd.name pmatch (/var/backups/))
            or (proc.exepath = /usr/bin/tar and proc.pname = dpkg-db-backup and fd.name pmatch (/var/lib/dpkg/alternatives))
@@ -168,18 +167,22 @@ customRules:
            or (proc.exepath = /usr/lib/systemd/systemd and fd.name startswith /sys/fs/cgroup/system.slice/)
            or (proc.exepath = /usr/lib/systemd/systemd and fd.name startswith /sys/fs/cgroup/kubepods.slice/)
            or (proc.exepath = /usr/lib/systemd/systemd and fd.name startswith /tmp/namespace-dev-)
-           or (proc.exepath = /usr/lib/systemd/systemd-tmpfiles and fd.name pmatch (/dev))
-           or (proc.exepath = /usr/lib/systemd/systemd-tmpfiles and fd.name pmatch (/etc))
-           or (proc.exepath = /usr/lib/systemd/systemd-tmpfiles and fd.name pmatch (/proc))
-           or (proc.exepath = /usr/lib/systemd/systemd-tmpfiles and fd.name pmatch (/run))
-           or (proc.exepath = /usr/lib/systemd/systemd-tmpfiles and fd.name pmatch (/usr))
-           or (proc.exepath = /usr/lib/systemd/systemd-tmpfiles and fd.name pmatch (/var))
-           or (proc.exepath = /usr/lib/systemd/systemd-tmpfiles and fd.name in (/, //home, //lib, //root, //root/.ssh, //srv, //tmp))
+           or (proc.exepath in (/usr/lib/systemd/systemd-tmpfiles, /usr/bin/systemd-tmpfiles) and (
+               fd.name pmatch (/dev)
+               or fd.name pmatch (/etc)
+               or fd.name pmatch (/proc)
+               or fd.name pmatch (/run)
+               or fd.name pmatch (/usr)
+               or fd.name pmatch (/var)
+               or fd.name in (/, //home, //lib, //root, //root/.ssh, //srv, //tmp)
+               ))
            or (proc.exepath = /usr/lib/systemd/systemd-journald and fd.name startswith /proc/)
            or (proc.exepath = /usr/lib/systemd/systemd-journald and fd.name startswith /run/systemd/journal/streams/)
            or (proc.exepath = /usr/sbin/logrotate and fd.name in (/, /etc/passwd, /etc/group, /etc/localtime, /etc/nsswitch.conf, /proc/filesystems))
            or (proc.exepath = /usr/sbin/logrotate and fd.name startswith /etc/logrotate)
            or (proc.exepath = /usr/sbin/logrotate and fd.name pmatch (/var/lib/logrotate/))
+           or (proc.exepath = /usr/bin/sar.sysstat and proc.pname = sa2 and fd.name in (/etc/localtime))
+           or (proc.exepath = /usr/bin/sar.sysstat and proc.pname = sa2 and fd.name pmatch (/var/log/sysstat))
            or (proc.exepath = /usr/lib/sysstat/sadc and fd.name in (/etc/localtime, /etc/sensors3.conf))
            or (proc.exepath = /usr/lib/sysstat/sadc and fd.name startswith /proc/)
            or (proc.exepath = /usr/lib/sysstat/sadc and fd.name startswith /sys/class/net/)
@@ -215,7 +218,11 @@ customRules:
         or (proc.exepath = /usr/sbin/runc and fd.name pmatch (/proc/))
         or (proc.exepath = /usr/sbin/runc and fd.name in (/dev/null, /etc/localtime, /usr/sbin/runc))
         or (proc.exepath = /usr/sbin/runc and fd.name in (/, /etc/group, /etc/passwd) and proc.name startswith runc:)
-        or (k8s.ns.name = falco and (
+        )
+
+    - macro: file_read_k8s
+      condition: (
+        (k8s.ns.name = falco and (
            (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falco and fd.name in (/etc/hosts, /etc/nsswitch.conf, /etc/resolv.conf, /etc/host.conf, /sys/devices/system/cpu/online))
            or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and fd.name startswith /root/.sigstore/)
            or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and fd.name startswith /rulesfiles/)
@@ -253,7 +260,8 @@ customRules:
           or (proc.exepath = /usr/bin/udevadm and fd.name = /proc/self/oom_score_adj)
           or (proc.exepath = /usr/bin/dash and fd.name in (/dev/null, /run/motd.dynamic.new, /var/lib/apt/daily_lock))
           or (proc.exepath = /usr/bin/bash and fd.name in (/dev/tty, /root/.bash_history))
-          or (proc.exepath = /usr/bin/bash and proc.name = sa2 and fd.name in (/dev/null, /var/log/sysstat/sar19))
+          or (proc.exepath = /usr/bin/bash and proc.name = sa2 and fd.name = /dev/null)
+          or (proc.exepath = /usr/bin/bash and proc.name = sa2 and fd.name pmatch (/var/log/sysstat/))
           or (proc.exepath = /usr/lib/systemd/systemd and fd.name = /proc/self/oom_score_adj)
           or (proc.exepath = /usr/lib/systemd/systemd and fd.name startswith /run/systemd/transient/)
           or (proc.exepath = /usr/lib/systemd/systemd and fd.name startswith /sys/fs/cgroup/kubepods.slice/)
@@ -271,6 +279,7 @@ customRules:
           or (proc.exepath = /usr/sbin/runc and fd.name startswith /run/containerd/)
           or (proc.exepath = /usr/sbin/sshd and fd.name in (/dev/null, /dev/ptmx, /dev/pts/0, /dev/tty, /proc/self/oom_score_adj, /var/log/lastlog, /var/log/wtmp, /var/run/utmp))
           or (proc.exepath = /usr/lib/sysstat/sadc and fd.name startswith /var/log/sysstat/sa)
+          or (proc.exepath = /usr/sbin/logrotate and fd.name pmatch (/var/lib/logrotate/))
           or (proc.cmdline = "6 init" and proc.name = 6 and proc.pname = runc and fd.name startswith /proc/self/oom_score_adj)
         ))
         or (proc.exepath = /usr/sbin/runc and fd.name startswith /proc/self/fd/)
@@ -288,7 +297,7 @@ customRules:
 
     - macro: symlink_at
       condition: (
-        (evt.type = symlinkat and proc.exepath = /usr/lib/systemd/systemd and proc.name = systemd)
+        (evt.type in (symlinkat, symlink) and proc.exepath = /usr/lib/systemd/systemd and proc.name = systemd)
         or (evt.type = symlinkat and proc.exepath = /usr/sbin/runc and proc.name startswith runc:)
         )
 
@@ -297,8 +306,9 @@ customRules:
 
     - macro: file_read_exempt
       condition: (
-        file_read
-        or libraries
+        libraries
+        or file_read_host
+        or file_read_k8s
         or user_apps_file_read
         )
 
