@@ -2,6 +2,13 @@ customRules:
 
   custom-rules-file.yaml: |-
 
+    - macro: never_true
+      condition: (evt.num=0)
+
+    #
+    # Applications
+    #
+
     - macro: apps_secure_k8s_file_read
       condition: (k8s.ns.name in (dev,prd) and (
         (k8s.pod.name startswith db- and proc.exepath = /usr/local/bin/redis-server and fd.name startswith /proc/self/)
@@ -76,30 +83,54 @@ customRules:
         ,/webshell/static/assets/vendors/js/core.js
         ))
         ))
-
-    #
-    #
-    #
-
+ 
+    - macro: apps_secure_k8s_file_modify
+      condition: (k8s.ns.name in (dev,prd) and (
+        (k8s.pod.name startswith app- and proc.name = gunicorn and fd.name startswith /tmp/wgunicorn-)
+        ))
+ 
     - macro: user_apps_file_read
       condition: (
         apps_secure_k8s_file_read
         )
 
-    - macro: never_true
-      condition: (evt.num=0)
+    - macro: user_apps_file_write
+      condition: (
+        never_true
+        )
 
-    - macro: open_write
-      condition: (evt.type in (open,openat,openat2) and evt.is_open_write=true and fd.typechar='f' and fd.num>=0)
+    - macro: user_apps_file_modify
+      condition: (
+        apps_secure_k8s_file_modify
+        )
+
+    #
+    # Host OS and K8S middleware
+    #
 
     - macro: open_read
       condition: (evt.type in (open,openat,openat2) and evt.is_open_read=true and fd.typechar='f' and fd.num>=0)
+
+    - macro: open_write
+      condition: (evt.type in (open,openat,openat2) and evt.is_open_write=true and fd.typechar='f' and fd.num>=0)
 
     - macro: create_symlink
       condition: (evt.type in (symlink, symlinkat) and evt.dir=<)
 
     - macro: create_hardlink
       condition: (evt.type in (link, linkat) and evt.dir=<)
+
+    - macro: rename
+      condition: (evt.type in (rename, renameat, renameat2))
+
+    - macro: remove
+      condition: (evt.type in (rmdir, unlink, unlinkat))
+
+    - macro: chmod
+      condition: (evt.type in (chmod, fchmod, fchmodat) and evt.dir=<)
+
+    - macro: modify
+      condition: (rename or remove or chmod)
 
     - macro: libraries
       condition: (
@@ -186,16 +217,22 @@ customRules:
               ))
            or (proc.exepath = /usr/lib/systemd/systemd-journald and fd.name startswith /proc/)
            or (proc.exepath = /usr/lib/systemd/systemd-journald and fd.name startswith /run/systemd/journal/streams/)
-           or (proc.exepath = /usr/sbin/logrotate and fd.name in (/, /etc/passwd, /etc/group, /etc/localtime, /etc/nsswitch.conf, /proc/filesystems))
-           or (proc.exepath = /usr/sbin/logrotate and fd.name startswith /etc/logrotate)
-           or (proc.exepath = /usr/sbin/logrotate and fd.name pmatch (/var/lib/logrotate/))
-           or (proc.exepath = /usr/lib/sysstat/sadc and fd.name in (/etc/localtime, /etc/sensors3.conf))
-           or (proc.exepath = /usr/lib/sysstat/sadc and fd.name startswith /proc/)
-           or (proc.exepath = /usr/lib/sysstat/sadc and fd.name startswith /sys/class/net/)
-           or (proc.exepath = /usr/lib/sysstat/sadc and fd.name startswith /var/log/sysstat/sa)
-           or (proc.exepath = /usr/bin/kmod and fd.name startswith /lib/modprobe.d/)
-           or (proc.exepath = /usr/bin/kmod and fd.name startswith /lib/modules/)
-           or (proc.exepath = /usr/bin/kmod and fd.name = /proc/cmdline)
+           or (proc.exepath = /usr/sbin/logrotate and (
+              fd.name in (/, /etc/passwd, /etc/group, /etc/localtime, /etc/nsswitch.conf, /proc/filesystems)
+              or fd.name startswith /etc/logrotate
+              or fd.name pmatch (/var/lib/logrotate/)
+              ))
+           or (proc.exepath = /usr/lib/sysstat/sadc and (
+              fd.name in (/etc/localtime, /etc/sensors3.conf)
+              or fd.name pmatch (/proc/)
+              or fd.name pmatch (/sys/class/net/)
+              or fd.name startswith /var/log/sysstat/sa
+              ))
+           or (proc.exepath = /usr/bin/kmod and (
+              fd.name = /proc/cmdline
+              or fd.name pmatch (/lib/modprobe.d/)
+              or fd.name pmatch (/lib/modules/)
+              ))
            or (proc.exepath = /usr/sbin/cron and fd.name pmatch (/etc/))
            or (proc.exepath = /usr/sbin/cron and fd.name in (/proc/1/limits, /proc/sys/kernel/ngroups_max, /var/run/utmp))
            or (proc.exepath = /usr/sbin/xtables-nft-multi and fd.name = /proc/net/ip_tables_names)
@@ -210,11 +247,13 @@ customRules:
            or (proc.exepath = /usr/bin/dash and proc.name startswith ifupdown-hotplu and fd.name = /lib/udev/ifupdown-hotplug)
            or (proc.exepath = /usr/bin/dbus-daemon and fd.name glob "/proc/*/cmdline" )
            or (proc.exepath = /usr/bin/dbus-daemon and fd.name = /run/systemd/users/0 )
-           or (proc.exepath = /usr/bin/udevadm and fd.name in (/dev/null, //lib))
-           or (proc.exepath = /usr/bin/udevadm and fd.name pmatch (/etc))
-           or (proc.exepath = /usr/bin/udevadm and fd.name pmatch (/run))
-           or (proc.exepath = /usr/bin/udevadm and fd.name pmatch (/sys))
-           or (proc.exepath = /usr/bin/udevadm and fd.name pmatch (/usr))
+           or (proc.exepath = /usr/bin/udevadm and (
+              fd.name in (/dev/null, //lib)
+              or fd.name pmatch (/etc)
+              or fd.name pmatch (/run)
+              or fd.name pmatch (/sys)
+              or fd.name pmatch (/usr)
+              ))
            or (proc.exepath = /usr/bin/umount and fd.name in (/proc/filesystems, /proc/self/mountinfo))
            or (proc.exepath = /usr/bin/umount and fd.name pmatch (/var/lib/kubelet/pods))
            or (proc.exepath = /opt/cni/bin/bridge and fd.name glob "/proc/*/task/*/ns/net" )
@@ -309,12 +348,74 @@ customRules:
         ))
         )
 
-    - macro: symlink_at
+    - macro: file_modify
       condition: (
-        (evt.type in (symlinkat, symlink) and proc.exepath = /usr/lib/systemd/systemd and proc.name = systemd)
-        or (evt.type = symlinkat and proc.exepath = /usr/sbin/runc and proc.name startswith runc:)
+        (evt.type in (rename,renameat) and container.id = host and (
+          (not evt.arg.oldpath pmatch (/) and not evt.arg.newpath pmatch (/))
+          or (proc.exepath = /usr/lib/systemd/systemd-journald
+           and evt.arg.oldpath pmatch (/run/systemd/journal/streams/) and evt.arg.newpath pmatch (/run/systemd/journal/streams/))
+          or (proc.exepath = /usr/lib/systemd/systemd
+           and evt.arg.oldpath startswith /run/systemd/transient/cri-containerd- and evt.arg.newpath startswith /run/systemd/transient/cri-containerd-)
+          or (proc.exepath = /usr/lib/systemd/systemd
+           and evt.arg.oldpath pmatch (/run/systemd/transient/kubepods-besteffort.slice.d/) and evt.arg.newpath pmatch (/run/systemd/transient/kubepods-besteffort.slice.d/))
+          or (proc.exepath = /usr/lib/systemd/systemd
+           and evt.arg.oldpath pmatch (/run/systemd/transient/kubepods-burstable.slice.d/) and evt.arg.newpath pmatch (/run/systemd/transient/kubepods-burstable.slice.d/))
+          or (proc.exepath = /usr/lib/systemd/systemd
+           and evt.arg.oldpath pmatch (/run/systemd/units/) and evt.arg.newpath pmatch (/run/systemd/units/))
+          or (proc.exepath = /usr/sbin/runc and evt.arg.oldpath pmatch (/run/containerd/runc/k8s.io/) and evt.arg.newpath pmatch (/run/containerd/runc/k8s.io/))
+          or (proc.exepath = /usr/sbin/runc and evt.arg.oldpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/) and evt.arg.newpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/))
+          or (proc.exepath = /usr/local/bin/containerd and evt.arg.oldpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/) and evt.arg.newpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/))
+          or (proc.exepath = /usr/local/bin/containerd and evt.arg.oldpath pmatch (/var/lib/containerd/) and evt.arg.newpath pmatch (/var/lib/containerd/))
+          or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2 and evt.arg.oldpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/) and evt.arg.newpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/))
+          ))
+        or (evt.type in (renameat) and k8s.ns.name = kube-system and (
+          (not evt.arg.oldpath pmatch (/) and not evt.arg.newpath pmatch (/))
+          or (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd
+           and evt.arg.oldpath pmatch (/var/lib/etcd/member/wal/) and evt.arg.newpath pmatch (/var/lib/etcd/member/wal/))
+          ))
+        or (evt.type in (rename) and k8s.ns.name = falco and (
+          (not evt.arg.oldpath pmatch (/) and not evt.arg.newpath pmatch (/))
+          or (k8s.pod.name = falco-falcosidekick-ui-redis-0 and proc.exepath = /opt/redis-stack/bin/redis-server
+           and evt.arg.oldpath startswith /data/temp- and evt.arg.newpath = /data/dump.rdb )
+          ))
+        or (evt.type in (unlink, unlinkat) and container.id = host and (
+          (not evt.arg.name pmatch (/))
+          or (proc.exepath = /usr/local/bin/containerd and evt.arg.name pmatch (/var/lib/containerd/))
+          or (proc.exepath = /usr/local/bin/containerd and evt.arg.name pmatch (/var/lib/cni/results/))
+          or (proc.exepath = /usr/local/bin/containerd and evt.arg.name pmatch (/run/containerd/))
+          or (proc.exepath = /usr/local/bin/containerd and evt.arg.name pmatch (/run/netns/))
+          or (proc.exepath = /usr/bin/udevadm and evt.arg.name pmatch (/run/udev/links/))
+          or (proc.exepath = /usr/sbin/runc and evt.arg.name pmatch (/run/containerd/runc/k8s.io/))
+          or (proc.exepath = /usr/sbin/runc and evt.arg.name pmatch (/sys/fs/cgroup/kubepods.slice/kubepods-burstable.slice/))
+          or (proc.exepath = /usr/sbin/runc and evt.arg.name pmatch (/sys/fs/cgroup/kubepods.slice/kubepods-besteffort.slice/))
+          or (proc.exepath = /opt/cni/bin/flannel and evt.arg.name pmatch (/var/lib/cni/flannel/))
+          or (proc.exepath = /opt/cni/bin/host-local and evt.arg.name pmatch (/var/lib/cni/))
+        ))
+        or (evt.type in (unlink, unlinkat) and (
+          (not evt.arg.name pmatch (/))
+          or (proc.exepath = /usr/sbin/runc and evt.arg.name pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/))
+        ))
+        or (evt.type in (unlink, unlinkat) and k8s.ns.name = kube-system and (
+          (not evt.arg.name pmatch (/))
+          or (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd and evt.arg.name pmatch (/var/lib/etcd/member/))
+          or (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd and evt.arg.name = "")
+        ))
+        or (evt.type in (unlink, unlinkat) and k8s.ns.name = falco and (
+          (not evt.arg.name pmatch (/))
+          or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and evt.arg.name pmatch (/root/.sigstore/))
+          or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and evt.arg.name pmatch (/rulesfiles/))
+          or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and evt.arg.name startswith /tmp/falcoctl-)
+          or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and evt.arg.name = "")
+        ))
         )
 
+    - macro: symlink_exempt
+      condition: (
+        never_true
+        )
+
+    #    (evt.type in (symlinkat, symlink) and proc.exepath = /usr/lib/systemd/systemd and proc.name = systemd)
+    #    or (evt.type = symlinkat and proc.exepath = /usr/sbin/runc and proc.name startswith runc:)
     #    or (proc.exepath = /usr/lib/systemd/systemd-logind and fd.name startswith /run/systemd/sessions/)
     #    or (proc.exepath = /usr/lib/systemd/systemd-logind and fd.name startswith /run/systemd/users/)
 
@@ -329,7 +430,18 @@ customRules:
     - macro: file_write_exempt
       condition: (
         file_write
-        or symlink_at
+        or user_apps_file_write
+        )
+
+    - macro: file_modify_exempt
+      condition: (
+        file_modify
+        or user_apps_file_modify
+        )
+
+    - macro: hardlink_exempt
+      condition: (
+        never_true
         )
 
     - rule: Unexpected File Read
@@ -343,7 +455,32 @@ customRules:
     - rule: Unexpected File Write
       desc: Detected unexpected File Write
       enabled: true
-      condition: (open_write or create_symlink or create_hardlink) and not file_write_exempt
+      condition: open_write and not file_write_exempt
       output: Detected Unexpected File  Write (host=%evt.hostname file=%fd.name pcmdline=%proc.pcmdline gparent=%proc.aname[2] ggparent=%proc.aname[3] gggparent=%proc.aname[4] aname[5]=%proc.aname[5] aname[6]=%proc.aname[6] aname[7]=%proc.aname[7] evt_type=%evt.type read=%evt.is_open_read write=%evt.is_open_write user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
       priority: WARNING
       tags: [catch_all, file_write, ktaka]
+
+    - rule: Unexpected File Modify
+      desc: Detected unexpected File Modification
+      enabled: true
+      condition: modify and not (file_modify_exempt or file_write_exempt)
+      output: Detected unexpected File Modification (file=%fd.name name=%evt.arg.name path=%evt.arg.path oldpath=%evt.arg.oldpath newpath=%evt.arg.newpath evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info evt.arg.fd=%evt.arg.fd evt.arg.filename=%evt.arg.filename evt.arg.mode=%evt.arg.mode fs.path.name=%fs.path.name fs.path.source=%fs.path.source fs.path.target=%fs.path.target)
+      priority: WARNING
+      tags: [catch_all, file_modifiy, ktaka]
+
+    - rule: Create Symlink
+      desc: Detected unexpected new Symlink
+      enabled: true
+      condition: create_symlink and not (symlink_exempt or file_write_exempt)
+      output: Symlinks created (host=%evt.hostname target=%evt.arg.target linkpath=%evt.arg.linkpath evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
+      priority: WARNING
+      tags: [catch_all, new_symlink, ktaka]
+
+    - rule: Create Hardlink
+      desc: Detected unexpected new Hardlink
+      enabled: true
+      condition: create_hardlink and not (hardlink_exempt or file_write_exempt)
+      output: Hardlinks created (host=%evt.hostname target=%evt.arg.target linkpath=%evt.arg.linkpath evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
+      priority: WARNING
+      tags: [catch_all, new_hardlink, ktaka]
+
