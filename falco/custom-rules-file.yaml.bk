@@ -143,7 +143,6 @@ customRules:
       condition: (
         (container.id = host and (
            proc.exepath = /usr/bin/kubelet
-           or (proc.exepath = /usr/sbin/fstrim)
            or (proc.exepath = /usr/bin/cmp and proc.pname = aptitude and fd.name in (/proc/self/maps, /var/backups/aptitude.pkgstates.0, /var/lib/aptitude/pkgstates))
            or (proc.exepath = /usr/bin/cmp and proc.pname startswith apt.systemd.dai and fd.name in (/proc/self/maps, /var/backups/apt.extended_states.0, /var/lib/apt/extended_states))
            or (proc.exepath = /usr/bin/dash and proc.pname = run-parts and fd.name in (/etc/cron.daily/apt-compat, /etc/cron.daily/aptitude, /etc/cron.daily/dpkg, /etc/cron.daily/logrotate, /etc/cron.daily/sysstat))
@@ -177,7 +176,7 @@ customRules:
            or (proc.exepath = /usr/bin/dpkg and fd.name pmatch (/etc/dpkg/))
            or (proc.exepath = /usr/bin/dpkg and fd.name in (/proc/filesystems))
            or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2 and (
-              fd.name in (/dev/null, /proc/sys/net/core/somaxconn, /usr/local/bin/containerd-shim-runc-v2, /etc/localtime)
+              fd.name in (/dev/null, /proc/sys/net/core/somaxconn, /usr/local/bin/containerd-shim-runc-v2)
               or fd.name pmatch (/run/containerd/)
               or fd.name pmatch (/proc/self/)
               or fd.name glob "/proc/*/cgroup"
@@ -193,7 +192,6 @@ customRules:
            or (proc.exepath = /usr/bin/systemctl and fd.name startswith /proc/filesystems)
            or (proc.exepath = /usr/lib/systemd/systemd and (
               fd.name in (//bin, /dev/null, //usr/bin/bash,
-              /sbin/fstrim,
               //usr/bin, //usr, //sys, //run, /var/lib/systemd/timers/stamp-apt-daily.timer, /dev, /dev/shm,
               /usr/libexec/dpkg/dpkg-db-backup, /usr/sbin/logrotate)
               or fd.name pmatch (/proc)
@@ -312,7 +310,7 @@ customRules:
           or (proc.exepath = /usr/bin/apt-get and fd.name in (/dev/null, /var/lib/dpkg/lock, /var/lib/dpkg/lock-frontend))
           or (proc.exepath = /usr/lib/apt/apt-helper and fd.name = /dev/null)
           or (proc.exepath = /usr/bin/gpgconf and fd.name = /dev/null)
-          or (proc.exepath = /usr/bin/udevadm and fd.name in (/run/udev/queue, /proc/self/oom_score_adj))
+          or (proc.exepath = /usr/bin/udevadm and fd.name = /proc/self/oom_score_adj)
           or (proc.exepath = /usr/bin/dash and fd.name in (/dev/null, /run/motd.dynamic.new, /var/lib/apt/daily_lock))
           or (proc.exepath = /usr/bin/bash and fd.name in (/dev/tty, /root/.bash_history))
           or (proc.exepath = /usr/bin/bash and proc.name = sa2 and fd.name = /dev/null)
@@ -355,7 +353,7 @@ customRules:
         (evt.type in (rename,renameat) and (
           (not evt.arg.oldpath pmatch (/) and not evt.arg.newpath pmatch (/))
           or (container.id = host and (
-            (proc.exepath = /usr/bin/kubelet)
+            or (proc.exepath = /usr/bin/kubelet)
             or (proc.exepath = /usr/lib/systemd/systemd-journald
                and evt.arg.oldpath pmatch (/run/systemd/journal/streams/) and evt.arg.newpath pmatch (/run/systemd/journal/streams/))
             or (proc.exepath = /usr/lib/systemd/systemd and (
@@ -437,18 +435,18 @@ customRules:
              or (proc.exepath = /usr/local/bin/containerd and fs.path.name pmatch (/var/lib/containerd/io.containerd.grpc.v1.cri/containers/))
           ))
         ))
-        )
+      )
 
     - macro: symlink_exempt
-      condition: (
+      condition: >
         evt.type in (symlinkat) and (
           (proc.exepath = /usr/sbin/runc and (
-            (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/rootfs/dev/fd" and evt.arg.target = /proc/self/fd)
-            or (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/rootfs/dev/stdin" and evt.arg.target = /proc/self/fd/0)
-            or (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/rootfs/dev/stdout" and evt.arg.target = /proc/self/fd/1)
-            or (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/rootfs/dev/stderr" and evt.arg.target = /proc/self/fd/2)
-            or (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/rootfs/dev/core" and evt.arg.target = /proc/kcore)
-            or (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/rootfs/dev/ptmx" and evt.arg.target = pts/ptmx)
+            (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/dev/fd" and evt.arg.target = /proc/self/fd)
+            or (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/dev/stdin" and evt.arg.target = /proc/self/fd/0)
+            or (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/dev/stdout" and evt.arg.target = /proc/self/fd/1)
+            or (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/dev/stderr" and evt.arg.target = /proc/self/fd/2)
+            or (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/dev/core" and evt.arg.target = /proc/kcore)
+            or (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/dev/ptmx" and evt.arg.target = pts/ptmx)
           ))
           or (container.id = host and (
              (proc.exepath = /usr/bin/kubelet)
@@ -458,7 +456,6 @@ customRules:
                 and evt.arg.target pmatch (/var/lib/containerd/io.containerd.runtime.v2.task/k8s.io/))
              ))
           ))
-        )
         )
 
     #    (evt.type in (symlinkat, symlink) and proc.exepath = /usr/lib/systemd/systemd and proc.name = systemd)

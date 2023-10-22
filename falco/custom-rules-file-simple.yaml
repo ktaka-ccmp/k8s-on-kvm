@@ -1,0 +1,358 @@
+customRules:
+
+  custom-rules-file.yaml: |-
+
+    - macro: never_true
+      condition: (evt.num=0)
+
+    #
+    # Applications
+    #
+
+    - macro: apps_secure_k8s_file_read
+      condition: (k8s.ns.name in (dev,prd) and (
+        (k8s.pod.name startswith db- and proc.exepath = /usr/local/bin/redis-server and fd.name startswith /proc/self/)
+        or (k8s.pod.name startswith app- and proc.name = gunicorn and fd.name in (/etc/host.conf, /etc/hosts, /etc/nsswitch.conf, /etc/resolv.conf
+        ,/app/templates/index.html
+        ,/app/static/stylesheets/style.css
+        ))
+        or (k8s.pod.name startswith app- and proc.name = gunicorn and fd.name pmatch (/usr/local/lib/python3.9))
+        or (k8s.pod.name startswith db- and proc.exepath = /usr/local/bin/redis-server and fd.name startswith /proc/self/)
+        or (k8s.pod.name startswith db- and proc.exepath = /usr/local/bin/redis-server and fd.name startswith /data/)
+        or (k8s.pod.name startswith dashboard- and proc.exepath = /usr/sbin/nginx and fd.name in (/etc/nginx/conf.d/htpasswd))
+        or (k8s.pod.name startswith dashboard- and proc.exepath = /usr/sbin/nginx and fd.name pmatch (/var/tmp/nginx/proxy))
+        or (k8s.pod.name startswith dashboard- and proc.exepath = /usr/bin/node and fd.name in (
+        /dev/ptmx
+        ,/webshell/static/css/lib/bootstrap/bootstrap.min.css
+        ,/webshell/static/css/lib/font-awesome/font-awesome.min.css
+        ,/webshell/static/css/lib/jqueryui/jquery-ui.min.css
+        ,/webshell/static/css/lib/lobipanel/lobipanel.min.css
+        ,/webshell/static/css/main.css
+        ,/webshell/static/css/separate/pages/widgets.min.css
+        ,/webshell/static/css/separate/vendor/lobipanel.min.css
+        ,/webshell/static/fonts/glyphicons-halflings-regular.woff2
+        ,/webshell/static/fonts/Proxima_Nova_Bold.woff2
+        ,/webshell/static/fonts/Proxima_Nova_Light.woff2
+        ,/webshell/static/fonts/Proxima_Nova_Regular_Italic.woff2
+        ,/webshell/static/fonts/Proxima_Nova_Regular.woff2
+        ,/webshell/static/fonts/Proxima_Nova_Semibold.woff2
+        ,/webshell/static/fonts/startui.woff
+        ,/webshell/static/img/avatar-2-64.png
+        ,/webshell/static/img/flags/4x3/us.svg
+        ,/webshell/static/img/logo-2-mob.png
+        ,/webshell/static/img/logo-2.png
+        ,/webshell/static/img/photo-64-1.jpg
+        ,/webshell/static/img/photo-64-2.jpg
+        ,/webshell/static/img/photo-64-3.jpg
+        ,/webshell/static/img/photo-64-4.jpg
+        ,/webshell/static/img/statistic-box-green.png
+        ,/webshell/static/img/statistic-box-grid.png
+        ,/webshell/static/img/statistic-box-purple.png
+        ,/webshell/static/img/statistic-box-red.png
+        ,/webshell/static/img/statistic-box-yellow.png
+        ,/webshell/static/index.html
+        ,/webshell/static/js/app.js
+        ,/webshell/static/js/lib/bootstrap/bootstrap.min.js
+        ,/webshell/static/js/lib/jquery/jquery-3.2.1.min.js
+        ,/webshell/static/js/lib/jqueryui/jquery-ui.min.js
+        ,/webshell/static/js/lib/lobipanel/lobipanel.min.js
+        ,/webshell/static/js/lib/match-height/jquery.matchHeight.min.js
+        ,/webshell/static/js/lib/popper/popper.min.js
+        ,/webshell/static/js/lib/tether/tether.min.js
+        ,/webshell/static/js/plugins.js
+        ,/webshell/static/assets/css/demo_1/style.css
+        ,/webshell/static/assets/css/shared/style.css
+        ,/webshell/static/assets/images/logo_mini.svg
+        ,/webshell/static/assets/images/logo.svg
+        ,/webshell/static/assets/images/profile/female/image_2.png
+        ,/webshell/static/assets/images/profile/female/image_6.png
+        ,/webshell/static/assets/images/profile/male/image_10.png
+        ,/webshell/static/assets/images/profile/male/image_1.png
+        ,/webshell/static/assets/images/profile/male/image_3.png
+        ,/webshell/static/assets/images/profile/male/image_4.png
+        ,/webshell/static/assets/images/profile/male/image_5.png
+        ,/webshell/static/assets/images/profile/male/image_6.png
+        ,/webshell/static/assets/images/social-icons/instagram.svg
+        ,/webshell/static/assets/js/charts/chartjs.addon.js
+        ,/webshell/static/assets/js/dashboard.js
+        ,/webshell/static/assets/js/template.js
+        ,/webshell/static/assets/vendors/apexcharts/apexcharts.min.js
+        ,/webshell/static/assets/vendors/chartjs/Chart.min.js
+        ,/webshell/static/assets/vendors/iconfonts/mdi/css/materialdesignicons.css
+        ,/webshell/static/assets/vendors/iconfonts/mdi/fonts/materialdesignicons-webfont.woff2
+        ,/webshell/static/assets/vendors/js/core.js
+        ))
+        ))
+ 
+    - macro: apps_secure_k8s_file_modify
+      condition: (k8s.ns.name in (dev,prd) and (
+        (k8s.pod.name startswith app- and proc.name = gunicorn and fd.name startswith /tmp/wgunicorn-)
+        ))
+ 
+    - macro: user_apps_file_read
+      condition: (
+        apps_secure_k8s_file_read
+        )
+
+    - macro: user_apps_file_write
+      condition: (
+        never_true
+        )
+
+    - macro: user_apps_file_modify
+      condition: (
+        apps_secure_k8s_file_modify
+        )
+
+    #
+    # Host OS and K8S middleware
+    #
+
+    - macro: open_read
+      condition: (evt.type in (open,openat,openat2) and evt.is_open_read=true and fd.typechar='f' and fd.num>=0)
+
+    - macro: open_write
+      condition: (evt.type in (open,openat,openat2) and evt.is_open_write=true and fd.typechar='f' and fd.num>=0)
+
+    - macro: create_symlink
+      condition: (evt.type in (symlink, symlinkat) and evt.dir=<)
+
+    - macro: create_hardlink
+      condition: (evt.type in (link, linkat) and evt.dir=<)
+
+    - macro: rename
+      condition: (evt.type in (rename, renameat, renameat2))
+
+    - macro: remove
+      condition: (evt.type in (rmdir, unlink, unlinkat))
+
+    - macro: chmod
+      condition: (evt.type in (chmod, fchmod, fchmodat) and evt.dir=<)
+
+    - macro: modify
+      condition: (rename or remove or chmod)
+
+    - macro: libraries
+      condition: (
+        (fd.name = /etc/ld.so.cache)
+        or (fd.name startswith /usr/lib/)
+        or (fd.name startswith /lib/x86_64-linux-gnu/)
+        )
+
+    - macro: file_read_host
+      condition: (
+        (proc.exepath = /usr/sbin/runc)
+        or (container.id = host and (
+           proc.exepath = /usr/bin/kubelet
+           or proc.exepath = /usr/bin/apt-config
+           or proc.exepath = /usr/bin/apt-get
+           or proc.exepath = /usr/bin/apt-helper
+           or proc.exepath = /usr/lib/apt/apt-helper
+           or proc.exepath = /usr/bin/dpkg
+           or proc.exepath = /usr/local/bin/containerd-shim-runc-v2
+           or proc.exepath = /usr/local/bin/containerd
+           or proc.exepath = /usr/bin/systemctl
+           or proc.exepath = /usr/lib/systemd/systemd
+           or proc.exepath = /usr/lib/systemd/systemd-tmpfiles
+           or proc.exepath = /usr/bin/systemd-tmpfiles
+           or proc.exepath = /usr/lib/systemd/systemd-journald
+           or proc.exepath = /usr/sbin/logrotate
+           or proc.exepath = /usr/lib/sysstat/sadc
+           or proc.exepath = /usr/bin/kmod
+           or proc.exepath = /usr/sbin/xtables-nft-multi
+           or proc.exepath = /usr/bin/dbus-daemon
+           or proc.exepath = /usr/bin/udevadm
+           or proc.exepath = /usr/bin/umount
+           or proc.exepath = /opt/cni/bin/bridge
+           or proc.exepath = /opt/cni/bin/flannel
+           or proc.exepath = /opt/cni/bin/host-local
+           or proc.exepath = /opt/cni/bin/loopback
+           or (proc.exepath = /usr/bin/cmp and proc.pname = aptitude and fd.name in (/proc/self/maps, /var/backups/aptitude.pkgstates.0, /var/lib/aptitude/pkgstates))
+           or (proc.exepath = /usr/bin/cmp and proc.pname startswith apt.systemd.dai
+              and fd.name in (/proc/self/maps, /var/backups/apt.extended_states.0, /var/lib/apt/extended_states))
+           or (proc.exepath = /usr/bin/dash and proc.pname = run-parts
+              and fd.name in (/etc/cron.daily/apt-compat, /etc/cron.daily/aptitude, /etc/cron.daily/dpkg, /etc/cron.daily/logrotate, /etc/cron.daily/sysstat))
+           or (proc.name = dpkg-db-backup and (
+              (proc.exepath = /usr/bin/dash and fd.name in (/usr/libexec/dpkg/dpkg-db-backup, /usr/share/dpkg/sh/dpkg-error.sh))
+              or (proc.exepath = /usr/bin/tar and fd.name in (/etc/passwd, /etc/group, /etc/nsswitch.conf, /proc/filesystems))
+              or (proc.exepath = /usr/bin/tar and fd.name pmatch (/var/backups/))
+              or (proc.exepath = /usr/bin/tar and fd.name pmatch (/var/lib/dpkg/alternatives))
+              or (proc.exepath = /usr/bin/cmp and fd.name in (/proc/self/maps))
+              or (proc.exepath = /usr/bin/cmp and fd.name pmatch (/var/backups))
+              or (proc.exepath = /usr/bin/cmp and fd.name pmatch (/var/lib/dpkg))
+           ))
+           or (proc.exepath = /usr/bin/date and proc.pname startswith apt.systemd.dai and fd.name in (/etc/localtime))
+           or (proc.exepath = /usr/sbin/cron and fd.name pmatch (/etc/))
+           or (proc.exepath = /usr/sbin/cron and fd.name in (/proc/1/limits, /proc/sys/kernel/ngroups_max, /var/run/utmp))
+           or (proc.exepath = /usr/bin/date and proc.pname = sa2 and fd.name in (/etc/localtime))
+           or (proc.exepath = /usr/bin/find and proc.pname = sa2 and fd.name in (/proc/filesystems, /usr/bin))
+           or (proc.exepath = /usr/bin/grep and proc.pname = sa2 and fd.name in (/proc/self/maps))
+           or (proc.exepath = /usr/bin/xargs and proc.aname[2] = sa2 and fd.name in (/dev/null))
+           or (proc.exepath = /usr/bin/sar.sysstat and proc.pname = sa2 and fd.name in (/etc/localtime))
+           or (proc.exepath = /usr/bin/sar.sysstat and proc.pname = sa2 and fd.name pmatch (/var/log/sysstat))
+           or (proc.exepath = /usr/bin/dash and proc.name = sa1 and fd.name = /etc/sysstat/sysstat)
+           or (proc.exepath = /usr/bin/bash and proc.name = sa2 and fd.name = /etc/sysstat/sysstat)
+           or (proc.exepath = /usr/bin/dash and proc.name startswith ifupdown-hotplu and fd.name = /lib/udev/ifupdown-hotplug)
+           or (proc.cmdline = "6 init" and proc.name = 6 and proc.pname = runc and fd.name in (/proc/self/exe, /proc/self/oom_score_adj))
+        ))
+        )
+
+    - macro: file_read_k8s
+      condition: (
+        (k8s.ns.name = kube-system and (
+           (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd)
+           or (k8s.pod.name startswith kube-apiserver- and proc.exepath = /usr/local/bin/kube-apiserver)
+           or (k8s.pod.name startswith kube-proxy- and proc.exepath = /usr/local/bin/kube-proxy)
+           or (k8s.pod.name startswith kube-proxy- and proc.exepath = /usr/sbin/xtables-nft-multi)
+           or (k8s.pod.name startswith coredns- and proc.exepath = /coredns)
+        ))
+        or (k8s.ns.name = falco and (
+           (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falco)
+           or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl)
+           or (k8s.pod.name startswith falco-falcosidekick- and proc.exepath = /app/falcosidekick)
+           or (k8s.pod.name startswith falco-falcosidekick-ui- and proc.exepath = /app/falcosidekick-ui)
+           or (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/bin/redis-server)
+           or (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/nodejs/bin/node and fd.name in (/etc/hosts))
+        ))
+        or (k8s.ns.name = kube-flannel and (
+           (k8s.pod.name startswith kube-flannel and proc.exepath = /opt/bin/flanneld)
+           or (k8s.pod.name startswith kube-flannel and proc.exepath = /sbin/xtables-nft-multi)
+        ))
+        )
+
+    - macro: file_write
+      condition: (
+        proc.exepath = /usr/sbin/runc
+        or (container.id = host and (
+          proc.exepath = /usr/bin/kubelet
+          or proc.exepath = /usr/bin/apt-config
+          or proc.exepath = /usr/bin/apt-get
+          or proc.exepath = /usr/lib/apt/apt-helper
+          or proc.exepath = /usr/bin/gpgconf
+          or proc.exepath = /usr/bin/udevadm
+          or proc.exepath = /usr/lib/systemd/systemd
+          or proc.exepath = /usr/lib/systemd/systemd-journald
+          or proc.exepath = /usr/local/bin/containerd
+          or proc.exepath = /usr/local/bin/containerd-shim-runc-v2
+          or proc.exepath = /usr/sbin/runc
+          or proc.exepath = /usr/lib/sysstat/sadc
+          or proc.exepath = /usr/sbin/logrotate
+          or (proc.exepath = /usr/bin/dash and fd.name in (/dev/null, /run/motd.dynamic.new, /var/lib/apt/daily_lock))
+          or (proc.exepath = /usr/bin/bash and fd.name in (/dev/tty, /root/.bash_history))
+          or (proc.exepath = /usr/bin/bash and proc.name = sa2 and fd.name = /dev/null)
+          or (proc.exepath = /usr/bin/bash and proc.name = sa2 and fd.name pmatch (/var/log/sysstat/))
+          or (proc.exepath = /usr/sbin/sshd and fd.name in (/dev/null, /dev/ptmx, /dev/pts/0, /dev/tty, /proc/self/oom_score_adj, /var/log/lastlog, /var/log/wtmp, /var/run/utmp))
+          or (proc.cmdline = "6 init" and proc.name = 6 and proc.pname = runc and fd.name startswith /proc/self/oom_score_adj)
+        ))
+        or (k8s.ns.name = kube-system and k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd)
+        or (k8s.ns.name = kube-flannel and k8s.pod.name startswith kube-flannel and proc.exepath = /opt/bin/flanneld)
+        or (k8s.ns.name = falco and (
+           (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/bin/redis-server)
+           or (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/nodejs/bin/node and fd.name startswith /redisinsight/)
+           or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl)
+        ))
+        )
+
+    - macro: file_modify
+      condition: (
+        proc.exepath = /usr/sbin/runc
+        or (container.id = host and (
+          proc.exepath = /usr/bin/kubelet
+          or proc.exepath = /usr/lib/systemd/systemd
+          or proc.exepath = /usr/lib/systemd/systemd-journald
+          or proc.exepath = /usr/sbin/runc
+          or proc.exepath = /usr/local/bin/containerd
+          or proc.exepath = /usr/local/bin/containerd-shim-runc-v2
+          or proc.exepath = /usr/bin/udevadm
+          or proc.exepath = /opt/cni/bin/flannel
+          or proc.exepath = /opt/cni/bin/host-local
+        ))
+        or (k8s.ns.name = kube-system and (
+          (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd)
+        ))
+        or (k8s.ns.name = falco and (
+          (k8s.pod.name = falco-falcosidekick-ui-redis-0 and proc.exepath = /opt/redis-stack/bin/redis-server)
+          or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl)
+        ))
+        )
+
+    - macro: symlink_exempt
+      condition: (
+        proc.exepath = /usr/sbin/runc
+        or (container.id = host and (
+          proc.exepath = /usr/bin/kubelet
+          or proc.exepath = /usr/lib/systemd/systemd
+          or proc.exepath = /usr/local/bin/containerd
+        ))
+        )
+
+    #    (evt.type in (symlinkat, symlink) and proc.exepath = /usr/lib/systemd/systemd and proc.name = systemd)
+    #    or (evt.type = symlinkat and proc.exepath = /usr/sbin/runc and proc.name startswith runc:)
+    #    or (proc.exepath = /usr/lib/systemd/systemd-logind and fd.name startswith /run/systemd/sessions/)
+    #    or (proc.exepath = /usr/lib/systemd/systemd-logind and fd.name startswith /run/systemd/users/)
+
+    - macro: file_read_exempt
+      condition: (
+        libraries
+        or file_read_host
+        or file_read_k8s
+        or user_apps_file_read
+        )
+
+    - macro: file_write_exempt
+      condition: (
+        file_write
+        or user_apps_file_write
+        )
+
+    - macro: file_modify_exempt
+      condition: (
+        file_modify
+        or user_apps_file_modify
+        )
+
+    - macro: hardlink_exempt
+      condition: (
+        never_true
+        )
+
+    - rule: Unexpected File Read
+      desc: Detected unexpected File Read
+      enabled: true
+      condition: open_read and not file_read_exempt
+      output: Detected Unexpected File Read (host=%evt.hostname file=%fd.name pcmdline=%proc.pcmdline gparent=%proc.aname[2] ggparent=%proc.aname[3] gggparent=%proc.aname[4] aname[5]=%proc.aname[5] aname[6]=%proc.aname[6] aname[7]=%proc.aname[7] evt_type=%evt.type read=%evt.is_open_read write=%evt.is_open_write user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
+      priority: WARNING
+      tags: [catch_all, file_read, ktaka]
+
+    - rule: Unexpected File Write
+      desc: Detected unexpected File Write
+      enabled: true
+      condition: open_write and not file_write_exempt
+      output: Detected Unexpected File  Write (host=%evt.hostname file=%fd.name pcmdline=%proc.pcmdline gparent=%proc.aname[2] ggparent=%proc.aname[3] gggparent=%proc.aname[4] aname[5]=%proc.aname[5] aname[6]=%proc.aname[6] aname[7]=%proc.aname[7] evt_type=%evt.type read=%evt.is_open_read write=%evt.is_open_write user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
+      priority: WARNING
+      tags: [catch_all, file_write, ktaka]
+
+    - rule: Unexpected File Modify
+      desc: Detected unexpected File Modification
+      enabled: true
+      condition: modify and not file_modify_exempt
+      output: Detected unexpected File Modification (file=%fd.name name=%evt.arg.name path=%evt.arg.path oldpath=%evt.arg.oldpath newpath=%evt.arg.newpath evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info evt.arg.fd=%evt.arg.fd evt.arg.filename=%evt.arg.filename evt.arg.mode=%evt.arg.mode fs.path.name=%fs.path.name fs.path.source=%fs.path.source fs.path.target=%fs.path.target)
+      priority: WARNING
+      tags: [catch_all, file_modifiy, ktaka]
+
+    - rule: Create Symlink
+      desc: Detected unexpected new Symlink
+      enabled: true
+      condition: create_symlink and not symlink_exempt
+      output: Symlinks created (host=%evt.hostname target=%evt.arg.target linkpath=%evt.arg.linkpath evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
+      priority: WARNING
+      tags: [catch_all, new_symlink, ktaka]
+
+    - rule: Create Hardlink
+      desc: Detected unexpected new Hardlink
+      enabled: true
+      condition: create_hardlink and not hardlink_exempt
+      output: Hardlinks created (host=%evt.hostname target=%evt.arg.target linkpath=%evt.arg.linkpath evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
+      priority: WARNING
+      tags: [catch_all, new_hardlink, ktaka]
+
