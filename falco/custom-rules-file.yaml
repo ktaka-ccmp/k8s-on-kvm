@@ -190,17 +190,27 @@ customRules:
               or fd.name pmatch (/run/containerd/)
               or fd.name pmatch (/var/run/netns/)
               ))
-           or (proc.exepath = /usr/bin/systemctl and fd.name startswith /proc/filesystems)
+           or (proc.exepath = /usr/bin/systemctl and (
+              (fd.name in (/proc/filesystems, /proc/1/environ, /proc/cmdline, /proc/self/status, /proc/sys/kernel/osrelease))
+              ))
            or (proc.exepath = /usr/lib/systemd/systemd and (
               fd.name in (//bin, /dev/null, //usr/bin/bash,
-              /sbin/fstrim,
+              /sbin/fstrim, /bin/systemctl, 
               //usr/bin, //usr, //sys, //run, /var/lib/systemd/timers/stamp-apt-daily.timer, /dev, /dev/shm,
               /usr/libexec/dpkg/dpkg-db-backup, /usr/sbin/logrotate)
+              or fd.name pmatch (/etc)
+              or fd.name pmatch (/lib)
               or fd.name pmatch (/proc)
+              or fd.name pmatch (/usr/bin)
+              or fd.name pmatch (/usr/lib)
+              or fd.name pmatch (/usr/local)
+              or fd.name pmatch (/usr/share)
               or fd.name pmatch (/sys/dev/block)
               or fd.name pmatch (/sys/devices/)
               or fd.name pmatch (/sys/dev)
+              or fd.name pmatch (/sys/class)
               or fd.name pmatch (/run/udev/data)
+              or fd.name pmatch (/run/user)
               or fd.name pmatch (/run/systemd)
               or fd.name pmatch (/var/lib/systemd/timers)
               or fd.name pmatch (/sys/fs/cgroup/user.slice)
@@ -265,6 +275,14 @@ customRules:
            or (proc.exepath = /opt/cni/bin/loopback and fd.name glob "/proc/*/task/*/ns/net" )
            or (proc.exepath = /opt/cni/bin/loopback and fd.name pmatch (/var/run/netns))
            or (proc.cmdline = "6 init" and proc.name = 6 and proc.pname = runc and fd.name in (/proc/self/exe, /proc/self/oom_score_adj))
+           or (proc.exepath = /usr/sbin/sshd and (
+              (fd.name in (/dev/null, /dev/ptmx, /dev/pts/0))
+              or (fd.name pmatch (/etc/))
+              or (fd.name pmatch (/proc/))
+              or (fd.name pmatch (/lib/))
+              or (fd.name pmatch (/run/))
+              or (fd.name pmatch (/usr/))
+              ))
         ))
         or (proc.exepath = /usr/sbin/runc and (
            fd.name pmatch (/run/containerd/)
@@ -332,7 +350,8 @@ customRules:
           or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2 and fd.name startswith /sys/fs/cgroup/)
           or (proc.exepath = /usr/sbin/runc and fd.name startswith /sys/fs/cgroup/)
           or (proc.exepath = /usr/sbin/runc and fd.name startswith /run/containerd/)
-          or (proc.exepath = /usr/sbin/sshd and fd.name in (/dev/null, /dev/ptmx, /dev/pts/0, /dev/tty, /proc/self/oom_score_adj, /var/log/lastlog, /var/log/wtmp, /var/run/utmp))
+          or (proc.exepath = /usr/sbin/sshd and fd.name in (/dev/null, /dev/ptmx, /dev/pts/0, /dev/tty,
+             /proc/self/oom_score_adj, /var/log/lastlog, /var/log/wtmp, /var/run/utmp))
           or (proc.exepath = /usr/lib/sysstat/sadc and fd.name startswith /var/log/sysstat/sa)
           or (proc.exepath = /usr/sbin/logrotate and fd.name pmatch (/var/lib/logrotate/))
           or (proc.cmdline = "6 init" and proc.name = 6 and proc.pname = runc and fd.name startswith /proc/self/oom_score_adj)
