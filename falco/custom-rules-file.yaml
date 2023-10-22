@@ -350,65 +350,72 @@ customRules:
 
     - macro: file_modify
       condition: (
-        (evt.type in (rename,renameat) and container.id = host and (
+        (evt.type in (rename,renameat) and (
           (not evt.arg.oldpath pmatch (/) and not evt.arg.newpath pmatch (/))
-          or (proc.exepath = /usr/bin/kubelet)
-          or (proc.exepath = /usr/lib/systemd/systemd-journald
-           and evt.arg.oldpath pmatch (/run/systemd/journal/streams/) and evt.arg.newpath pmatch (/run/systemd/journal/streams/))
-          or (proc.exepath = /usr/lib/systemd/systemd
-           and evt.arg.oldpath startswith /run/systemd/transient/cri-containerd- and evt.arg.newpath startswith /run/systemd/transient/cri-containerd-)
-          or (proc.exepath = /usr/lib/systemd/systemd
-           and evt.arg.oldpath pmatch (/run/systemd/transient/kubepods-besteffort.slice.d/) and evt.arg.newpath pmatch (/run/systemd/transient/kubepods-besteffort.slice.d/))
-          or (proc.exepath = /usr/lib/systemd/systemd
-           and evt.arg.oldpath pmatch (/run/systemd/transient/kubepods-burstable.slice.d/) and evt.arg.newpath pmatch (/run/systemd/transient/kubepods-burstable.slice.d/))
-          or (proc.exepath = /usr/lib/systemd/systemd
-           and evt.arg.oldpath pmatch (/run/systemd/units/) and evt.arg.newpath pmatch (/run/systemd/units/))
-          or (proc.exepath = /usr/sbin/runc and evt.arg.oldpath pmatch (/run/containerd/runc/k8s.io/) and evt.arg.newpath pmatch (/run/containerd/runc/k8s.io/))
-          or (proc.exepath = /usr/sbin/runc and evt.arg.oldpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/) and evt.arg.newpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/))
-          or (proc.exepath = /usr/local/bin/containerd and evt.arg.oldpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/) and evt.arg.newpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/))
-          or (proc.exepath = /usr/local/bin/containerd and evt.arg.oldpath pmatch (/var/lib/containerd/) and evt.arg.newpath pmatch (/var/lib/containerd/))
-          or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2 and evt.arg.oldpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/) and evt.arg.newpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/))
+          or (container.id = host and (
+            (proc.exepath = /usr/bin/kubelet)
+            or (proc.exepath = /usr/lib/systemd/systemd-journald
+               and evt.arg.oldpath pmatch (/run/systemd/journal/streams/) and evt.arg.newpath pmatch (/run/systemd/journal/streams/))
+            or (proc.exepath = /usr/lib/systemd/systemd and (
+               (evt.arg.oldpath startswith /run/systemd/transient/cri-containerd- and evt.arg.newpath startswith /run/systemd/transient/cri-containerd-)
+              or (evt.arg.oldpath pmatch (/run/systemd/transient/kubepods-besteffort.slice.d/)
+                and evt.arg.newpath pmatch (/run/systemd/transient/kubepods-besteffort.slice.d/))
+              or (evt.arg.oldpath pmatch (/run/systemd/transient/kubepods-burstable.slice.d/)
+                and evt.arg.newpath pmatch (/run/systemd/transient/kubepods-burstable.slice.d/))
+              or (evt.arg.oldpath pmatch (/run/systemd/units/) and evt.arg.newpath pmatch (/run/systemd/units/))
+            ))
+            or (proc.exepath = /usr/sbin/runc and (
+              (evt.arg.oldpath pmatch (/run/containerd/runc/k8s.io/) and evt.arg.newpath pmatch (/run/containerd/runc/k8s.io/))
+              or (evt.arg.oldpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/)
+                 and evt.arg.newpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/))
+            ))
+            or (proc.exepath = /usr/local/bin/containerd and (
+              (evt.arg.oldpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/)
+               and evt.arg.newpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/))
+              or (evt.arg.oldpath pmatch (/var/lib/containerd/) and evt.arg.newpath pmatch (/var/lib/containerd/))
+            ))
+            or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2
+               and evt.arg.oldpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/)
+               and evt.arg.newpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/))
           ))
-        or (evt.type in (renameat) and k8s.ns.name = kube-system and (
-          (not evt.arg.oldpath pmatch (/) and not evt.arg.newpath pmatch (/))
-          or (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd
-           and evt.arg.oldpath pmatch (/var/lib/etcd/member/wal/) and evt.arg.newpath pmatch (/var/lib/etcd/member/wal/))
+          or (k8s.ns.name = kube-system and (
+            (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd
+            and evt.arg.oldpath pmatch (/var/lib/etcd/member/wal/) and evt.arg.newpath pmatch (/var/lib/etcd/member/wal/))
           ))
-        or (evt.type in (rename, renameat) and k8s.ns.name = falco and (
-          (not evt.arg.oldpath pmatch (/) and not evt.arg.newpath pmatch (/))
-          or (k8s.pod.name = falco-falcosidekick-ui-redis-0 and proc.exepath = /opt/redis-stack/bin/redis-server and evt.arg.oldpath startswith /data/temp- and evt.arg.newpath = /data/dump.rdb )
-          or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and evt.arg.oldpath pmatch (/root/.sigstore/root/tuf.db/) and evt.arg.newpath pmatch (/root/.sigstore/root/tuf.db/))
+          or (k8s.ns.name = falco and (
+            (k8s.pod.name = falco-falcosidekick-ui-redis-0 and proc.exepath = /opt/redis-stack/bin/redis-server
+              and evt.arg.oldpath startswith /data/temp- and evt.arg.newpath = /data/dump.rdb )
+            or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl
+              and evt.arg.oldpath pmatch (/root/.sigstore/root/tuf.db/) and evt.arg.newpath pmatch (/root/.sigstore/root/tuf.db/))
           ))
-        or (evt.type in (unlink, unlinkat) and container.id = host and (
-          (not evt.arg.name pmatch (/))
-          or (proc.exepath = /usr/bin/kubelet)
-          or (proc.exepath = /usr/local/bin/containerd and evt.arg.name pmatch (/var/lib/containerd/))
-          or (proc.exepath = /usr/local/bin/containerd and evt.arg.name pmatch (/var/lib/cni/results/))
-          or (proc.exepath = /usr/local/bin/containerd and evt.arg.name pmatch (/run/containerd/))
-          or (proc.exepath = /usr/local/bin/containerd and evt.arg.name pmatch (/run/netns/))
-          or (proc.exepath = /usr/bin/udevadm and evt.arg.name pmatch (/run/udev/links/))
-          or (proc.exepath = /usr/sbin/runc and evt.arg.name pmatch (/run/containerd/runc/k8s.io/))
-          or (proc.exepath = /usr/sbin/runc and evt.arg.name pmatch (/sys/fs/cgroup/kubepods.slice/kubepods-burstable.slice/))
-          or (proc.exepath = /usr/sbin/runc and evt.arg.name pmatch (/sys/fs/cgroup/kubepods.slice/kubepods-besteffort.slice/))
-          or (proc.exepath = /opt/cni/bin/flannel and evt.arg.name pmatch (/var/lib/cni/flannel/))
-          or (proc.exepath = /opt/cni/bin/host-local and evt.arg.name pmatch (/var/lib/cni/))
-          or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2 and evt.arg.name pmatch (/run/containerd/s/))
         ))
         or (evt.type in (unlink, unlinkat) and (
           (not evt.arg.name pmatch (/))
           or (proc.exepath = /usr/sbin/runc and evt.arg.name pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/))
-        ))
-        or (evt.type in (unlink, unlinkat) and k8s.ns.name = kube-system and (
-          (not evt.arg.name pmatch (/))
-          or (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd and evt.arg.name pmatch (/var/lib/etcd/member/))
-          or (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd and evt.arg.name = "")
-        ))
-        or (evt.type in (unlink, unlinkat) and k8s.ns.name = falco and (
-          (not evt.arg.name pmatch (/))
-          or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and evt.arg.name pmatch (/root/.sigstore/))
-          or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and evt.arg.name pmatch (/rulesfiles/))
-          or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and evt.arg.name startswith /tmp/falcoctl-)
-          or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and evt.arg.name = "")
+          or (container.id = host and (
+             (proc.exepath = /usr/bin/kubelet)
+             or (proc.exepath = /usr/local/bin/containerd and evt.arg.name pmatch (/var/lib/containerd/))
+             or (proc.exepath = /usr/local/bin/containerd and evt.arg.name pmatch (/var/lib/cni/results/))
+             or (proc.exepath = /usr/local/bin/containerd and evt.arg.name pmatch (/run/containerd/))
+             or (proc.exepath = /usr/local/bin/containerd and evt.arg.name pmatch (/run/netns/))
+             or (proc.exepath = /usr/bin/udevadm and evt.arg.name pmatch (/run/udev/links/))
+             or (proc.exepath = /usr/sbin/runc and evt.arg.name pmatch (/run/containerd/runc/k8s.io/))
+             or (proc.exepath = /usr/sbin/runc and evt.arg.name pmatch (/sys/fs/cgroup/kubepods.slice/kubepods-burstable.slice/))
+             or (proc.exepath = /usr/sbin/runc and evt.arg.name pmatch (/sys/fs/cgroup/kubepods.slice/kubepods-besteffort.slice/))
+             or (proc.exepath = /opt/cni/bin/flannel and evt.arg.name pmatch (/var/lib/cni/flannel/))
+             or (proc.exepath = /opt/cni/bin/host-local and evt.arg.name pmatch (/var/lib/cni/))
+             or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2 and evt.arg.name pmatch (/run/containerd/s/))
+          ))
+          or (k8s.ns.name = kube-system and (
+             (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd and evt.arg.name pmatch (/var/lib/etcd/member/))
+             or (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd and evt.arg.name = "")
+          ))
+          or (k8s.ns.name = falco and (
+             (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and evt.arg.name pmatch (/root/.sigstore/))
+             or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and evt.arg.name pmatch (/rulesfiles/))
+             or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and evt.arg.name startswith /tmp/falcoctl-)
+             or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and evt.arg.name = "")
+          ))
         ))
         or (evt.type in (rmdir) and (
           (not evt.arg.path pmatch (/))
@@ -418,7 +425,7 @@ customRules:
              or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.path pmatch (/sys/fs/cgroup/kubepods.slice/kubepods-burstable.slice/))
              or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.path pmatch (/sys/fs/cgroup/system.slice/))
              or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.path pmatch (/sys/fs/cgroup/user.slice/))
-             ))
+          ))
         ))
         or (evt.type in (fchmod, fchmodat) and (
           (proc.exepath = /usr/sbin/runc and fs.path.name pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/))
@@ -426,13 +433,13 @@ customRules:
              (proc.exepath = /usr/bin/kubelet)
              or (proc.exepath = /usr/lib/systemd/systemd and fs.path.name pmatch (/run/systemd/transient/))
              or (proc.exepath = /usr/local/bin/containerd and fs.path.name pmatch (/var/lib/containerd/io.containerd.grpc.v1.cri/containers/))
-             ))
+          ))
         ))
         )
 
     - macro: symlink_exempt
-      condition: (
-        (evt.type in (symlinkat) and (
+      condition: >
+        evt.type in (symlinkat) and (
           (proc.exepath = /usr/sbin/runc and (
             (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/dev/fd" and evt.arg.target = /proc/self/fd)
             or (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/dev/stdin" and evt.arg.target = /proc/self/fd/0)
@@ -440,16 +447,17 @@ customRules:
             or (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/dev/stderr" and evt.arg.target = /proc/self/fd/2)
             or (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/dev/core" and evt.arg.target = /proc/kcore)
             or (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/dev/ptmx" and evt.arg.target = pts/ptmx)
-            ))
-          or (container.id = host and proc.exepath = /usr/bin/kubelet)
-          or (container.id = host and proc.exepath = /usr/lib/systemd/systemd and (
-            evt.arg.linkpath pmatch (/run/systemd/units/)
-            ))
-          or (container.id = host and proc.exepath = /usr/local/bin/containerd and (
-            (evt.arg.linkpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/) and evt.arg.target pmatch (/var/lib/containerd/io.containerd.runtime.v2.task/k8s.io/))
-            ))
-        ))
+          ))
+          or (container.id = host and (
+             (proc.exepath = /usr/bin/kubelet)
+             or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.linkpath pmatch (/run/systemd/units/))
+             or (proc.exepath = /usr/local/bin/containerd and (
+                (evt.arg.linkpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/)
+                and evt.arg.target pmatch (/var/lib/containerd/io.containerd.runtime.v2.task/k8s.io/))
+             ))
+          ))
         )
+
 
     #    (evt.type in (symlinkat, symlink) and proc.exepath = /usr/lib/systemd/systemd and proc.name = systemd)
     #    or (evt.type = symlinkat and proc.exepath = /usr/sbin/runc and proc.name startswith runc:)
