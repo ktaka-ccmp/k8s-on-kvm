@@ -129,8 +129,17 @@ customRules:
     - macro: chmod
       condition: (evt.type in (chmod, fchmod, fchmodat) and evt.dir=<)
 
+    - macro: mkdir
+      condition: (evt.type in (mkdir, mkdirat))
+
     - macro: modify
-      condition: (rename or remove or chmod)
+      condition: (rename or remove or chmod or mkdir)
+
+    - macro: dup
+      condition: (evt.type in (dup, dup2, dup3))
+
+    - macro: open_write2
+      condition: (dup and fd.typechar='f' and fd.num>=0 and evt.dir=<)
 
     - macro: libraries
       condition: (
@@ -229,13 +238,15 @@ customRules:
           or (proc.cmdline = "6 init" and proc.name = 6 and proc.pname = runc and fd.name startswith /proc/self/oom_score_adj)
         ))
         or (k8s.ns.name = falco and (
-           (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/nodejs/bin/node and fd.name startswith /redisinsight/)
+           (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/nodejs/bin/node and fd.name startswith /redisinsight/content/)
         ))
         )
 
     - macro: file_modify
       condition: (
-        never_true
+        (k8s.ns.name = falco and (
+           (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/nodejs/bin/node and fd.name startswith /redisinsight/content/)
+        ))
         )
 
     - macro: file_read_exempt
@@ -285,6 +296,14 @@ customRules:
       output: Detected Unexpected File  Write (host=%evt.hostname file=%fd.name pcmdline=%proc.pcmdline gparent=%proc.aname[2] ggparent=%proc.aname[3] gggparent=%proc.aname[4] aname[5]=%proc.aname[5] aname[6]=%proc.aname[6] aname[7]=%proc.aname[7] evt_type=%evt.type read=%evt.is_open_read write=%evt.is_open_write user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
       priority: WARNING
       tags: [catch_all, file_write, ktaka]
+
+    - rule: Unexpected File Redirect
+      desc: Detected unexpected File Redirect
+      enabled: true
+      condition: open_write2 and not file_write_exempt
+      output: Detected Unexpected File Redirect (host=%evt.hostname file=%fd.name pcmdline=%proc.pcmdline gparent=%proc.aname[2] ggparent=%proc.aname[3] gggparent=%proc.aname[4] aname[5]=%proc.aname[5] aname[6]=%proc.aname[6] aname[7]=%proc.aname[7] evt_type=%evt.type read=%evt.is_open_read write=%evt.is_open_write user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info evt.args=%evt.args)
+      priority: WARNING
+      tags: [catch_all, file_redirect, ktaka]
 
     - rule: Unexpected File Modify
       desc: Detected unexpected File Modification
