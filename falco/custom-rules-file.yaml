@@ -145,6 +145,13 @@ customRules:
            proc.exepath = /usr/bin/kubelet
            or (proc.exepath = /usr/sbin/fstrim)
            or (proc.exepath = /usr/bin/cmp and proc.pname = aptitude and fd.name in (/proc/self/maps, /var/backups/aptitude.pkgstates.0, /var/lib/aptitude/pkgstates))
+           or (proc.exepath = /usr/bin/cmp and proc.pname = dpkg-db-backup and fd.name in (/proc/self/maps,
+              /var/backups/dpkg.diversions.0, /var/lib/dpkg/diversions,
+              /var/backups/dpkg.statoverride.0, /var/lib/dpkg/statoverride,
+              /var/backups/dpkg.status.0, /var/lib/dpkg/status))
+           or (proc.exepath = /usr/bin/tar and proc.pname = dpkg-db-backup and fd.name in (/etc/group, /etc/nsswitch.conf, /etc/passwd, /proc/filesystems,
+              /var/backups/alternatives.tar.0))
+           or (proc.exepath = /usr/bin/tar and proc.pname = dpkg-db-backup and fd.name pmatch (/var/lib/dpkg/alternatives/))
            or (proc.exepath = /usr/bin/cmp and proc.pname startswith apt.systemd.dai and fd.name in (/proc/self/maps, /var/backups/apt.extended_states.0, /var/lib/apt/extended_states))
            or (proc.exepath = /usr/bin/dash and proc.pname = run-parts and fd.name in (/etc/cron.daily/apt-compat, /etc/cron.daily/aptitude, /etc/cron.daily/dpkg, /etc/cron.daily/logrotate, /etc/cron.daily/sysstat))
            or (proc.name = dpkg-db-backup and (
@@ -212,6 +219,7 @@ customRules:
               or fd.name pmatch (/run/udev/data)
               or fd.name pmatch (/run/user)
               or fd.name pmatch (/run/systemd)
+              or fd.name pmatch (/run/credentials)
               or fd.name pmatch (/var/lib/systemd/timers)
               or fd.name pmatch (/sys/fs/cgroup/user.slice)
               or fd.name pmatch (/sys/fs/cgroup/system.slice)
@@ -398,6 +406,7 @@ customRules:
             or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2
                and evt.arg.oldpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/)
                and evt.arg.newpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/))
+            or (proc.exepath = /usr/sbin/logrotate and evt.arg.oldpath pmatch (/var/lib/logrotate/) and evt.arg.newpath pmatch (/var/lib/logrotate/))
           ))
           or (k8s.ns.name = kube-system and (
             (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd
@@ -415,6 +424,8 @@ customRules:
           or (proc.exepath = /usr/sbin/runc and evt.arg.name pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/))
           or (container.id = host and (
              (proc.exepath = /usr/bin/kubelet)
+             or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.name startswith /tmp/systemd-private-)
+             or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.name startswith /var/tmp/systemd-private-)
              or (proc.exepath = /usr/local/bin/containerd and evt.arg.name pmatch (/var/lib/containerd/))
              or (proc.exepath = /usr/local/bin/containerd and evt.arg.name pmatch (/var/lib/cni/results/))
              or (proc.exepath = /usr/local/bin/containerd and evt.arg.name pmatch (/run/containerd/))
@@ -446,6 +457,10 @@ customRules:
              or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.path pmatch (/sys/fs/cgroup/kubepods.slice/kubepods-burstable.slice/))
              or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.path pmatch (/sys/fs/cgroup/system.slice/))
              or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.path pmatch (/sys/fs/cgroup/user.slice/))
+             or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.path pmatch (/run/credentials/systemd-tmpfiles-clean.service))
+             or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.path startswith /tmp/namespace-dev-)
+             or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.path startswith /tmp/systemd-private-)
+             or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.path startswith /var/tmp/systemd-private-)
           ))
         ))
         or (evt.type in (fchmod, fchmodat) and (
@@ -453,6 +468,7 @@ customRules:
           or (container.id = host and (
              (proc.exepath = /usr/bin/kubelet)
              or (proc.exepath = /usr/lib/systemd/systemd and fs.path.name pmatch (/run/systemd/transient/))
+             or (proc.exepath = /usr/lib/systemd/systemd and fs.path.name = /dev/shm)
              or (proc.exepath = /usr/local/bin/containerd and fs.path.name pmatch (/var/lib/containerd/io.containerd.grpc.v1.cri/containers/))
           ))
         ))
@@ -471,7 +487,10 @@ customRules:
           ))
           or (container.id = host and (
              (proc.exepath = /usr/bin/kubelet)
-             or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.linkpath pmatch (/run/systemd/units/))
+             or (proc.exepath = /usr/lib/systemd/systemd and (
+                (evt.arg.linkpath pmatch (/run/systemd/units/))
+                or (evt.arg.linkpath startswith /tmp/namespace-dev-)
+                ))
              or (proc.exepath = /usr/local/bin/containerd and (
                 (evt.arg.linkpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/)
                 and evt.arg.target pmatch (/var/lib/containerd/io.containerd.runtime.v2.task/k8s.io/))
