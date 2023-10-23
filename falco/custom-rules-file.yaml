@@ -141,19 +141,37 @@ customRules:
 
     - macro: file_read_host
       condition: (
-        (container.id = host and (
+        (proc.exepath = /usr/sbin/runc)
+        or (container.id = host and (
            proc.exepath = /usr/bin/kubelet
-           or (proc.exepath = /usr/sbin/fstrim)
+           or proc.exepath = /usr/bin/apt-config
+           or proc.exepath = /usr/bin/apt-get
+           or proc.exepath = /usr/bin/apt-helper
+           or proc.exepath = /usr/lib/apt/apt-helper
+           or proc.exepath = /usr/bin/dpkg
+           or proc.exepath = /usr/local/bin/containerd-shim-runc-v2
+           or proc.exepath = /usr/local/bin/containerd
+           or proc.exepath = /usr/bin/systemctl
+           or proc.exepath = /usr/lib/systemd/systemd
+           or proc.exepath = /usr/lib/systemd/systemd-tmpfiles
+           or proc.exepath = /usr/bin/systemd-tmpfiles
+           or proc.exepath = /usr/lib/systemd/systemd-journald
+           or proc.exepath = /usr/sbin/logrotate
+           or proc.exepath = /usr/lib/sysstat/sadc
+           or proc.exepath = /usr/bin/kmod
+           or proc.exepath = /usr/sbin/xtables-nft-multi
+           or proc.exepath = /usr/bin/dbus-daemon
+           or proc.exepath = /usr/bin/udevadm
+           or proc.exepath = /usr/bin/umount
+           or proc.exepath = /opt/cni/bin/bridge
+           or proc.exepath = /opt/cni/bin/flannel
+           or proc.exepath = /opt/cni/bin/host-local
+           or proc.exepath = /opt/cni/bin/loopback
            or (proc.exepath = /usr/bin/cmp and proc.pname = aptitude and fd.name in (/proc/self/maps, /var/backups/aptitude.pkgstates.0, /var/lib/aptitude/pkgstates))
-           or (proc.exepath = /usr/bin/cmp and proc.pname = dpkg-db-backup and fd.name in (/proc/self/maps,
-              /var/backups/dpkg.diversions.0, /var/lib/dpkg/diversions,
-              /var/backups/dpkg.statoverride.0, /var/lib/dpkg/statoverride,
-              /var/backups/dpkg.status.0, /var/lib/dpkg/status))
-           or (proc.exepath = /usr/bin/tar and proc.pname = dpkg-db-backup and fd.name in (/etc/group, /etc/nsswitch.conf, /etc/passwd, /proc/filesystems,
-              /var/backups/alternatives.tar.0))
-           or (proc.exepath = /usr/bin/tar and proc.pname = dpkg-db-backup and fd.name pmatch (/var/lib/dpkg/alternatives/))
-           or (proc.exepath = /usr/bin/cmp and proc.pname startswith apt.systemd.dai and fd.name in (/proc/self/maps, /var/backups/apt.extended_states.0, /var/lib/apt/extended_states))
-           or (proc.exepath = /usr/bin/dash and proc.pname = run-parts and fd.name in (/etc/cron.daily/apt-compat, /etc/cron.daily/aptitude, /etc/cron.daily/dpkg, /etc/cron.daily/logrotate, /etc/cron.daily/sysstat))
+           or (proc.exepath = /usr/bin/cmp and proc.pname startswith apt.systemd.dai
+              and fd.name in (/proc/self/maps, /var/backups/apt.extended_states.0, /var/lib/apt/extended_states))
+           or (proc.exepath = /usr/bin/dash and proc.pname = run-parts
+              and fd.name in (/etc/cron.daily/apt-compat, /etc/cron.daily/aptitude, /etc/cron.daily/dpkg, /etc/cron.daily/logrotate, /etc/cron.daily/sysstat))
            or (proc.name = dpkg-db-backup and (
               (proc.exepath = /usr/bin/dash and fd.name in (/usr/libexec/dpkg/dpkg-db-backup, /usr/share/dpkg/sh/dpkg-error.sh))
               or (proc.exepath = /usr/bin/tar and fd.name in (/etc/passwd, /etc/group, /etc/nsswitch.conf, /proc/filesystems))
@@ -164,98 +182,8 @@ customRules:
               or (proc.exepath = /usr/bin/cmp and fd.name pmatch (/var/lib/dpkg))
            ))
            or (proc.exepath = /usr/bin/date and proc.pname startswith apt.systemd.dai and fd.name in (/etc/localtime))
-           or (proc.exepath = /usr/bin/apt-config and (
-              fd.name = /dev/null
-              or fd.name pmatch (/etc/apt/apt.conf.d/)
-              or fd.name pmatch (/usr/share/dpkg/)
-              ))
-           or (proc.exepath = /usr/bin/apt-get and (
-              fd.name in (/dev/null, /etc/localtime, /etc/machine-id)
-              or fd.name pmatch (/etc/apt)
-              or fd.name pmatch (/usr/share/dpkg/)
-              or fd.name pmatch (/var/cache/apt/)
-              or fd.name pmatch (/var/lib/apt/)
-              or fd.name pmatch (/var/lib/dpkg/)
-              ))
-           or (proc.exepath in (/usr/bin/apt-helper,/usr/lib/apt/apt-helper) and (
-              fd.name pmatch (/etc/apt)
-              or fd.name pmatch (/usr/share/dpkg/)
-              ))
-           or (proc.exepath = /usr/bin/dpkg and fd.name pmatch (/etc/dpkg/))
-           or (proc.exepath = /usr/bin/dpkg and fd.name in (/proc/filesystems))
-           or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2 and (
-              fd.name in (/dev/null, /proc/sys/net/core/somaxconn, /usr/local/bin/containerd-shim-runc-v2, /etc/localtime)
-              or fd.name pmatch (/run/containerd/)
-              or fd.name pmatch (/proc/self/)
-              or fd.name glob "/proc/*/cgroup"
-              or fd.name pmatch (/sys/fs/cgroup/)
-              ))
-           or (proc.exepath = /usr/local/bin/containerd and (
-              fd.name in (/dev/null)
-              or fd.name pmatch (/var/lib/containerd/)
-              or fd.name pmatch (/proc/self/)
-              or fd.name pmatch (/run/containerd/)
-              or fd.name pmatch (/var/run/netns/)
-              ))
-           or (proc.exepath = /usr/bin/systemctl and (
-              (fd.name in (/proc/filesystems, /proc/1/environ, /proc/cmdline, /proc/self/status, /proc/sys/kernel/osrelease))
-              ))
-           or (proc.exepath = /usr/lib/systemd/systemd and (
-              fd.name in (//bin, /dev/null, //usr/bin/bash,
-              /sbin/fstrim, /bin/systemctl, 
-              //usr/bin, //usr, //sys, //run, /var/lib/systemd/timers/stamp-apt-daily.timer, /dev, /dev/shm,
-              /usr/libexec/dpkg/dpkg-db-backup, /usr/sbin/logrotate)
-              or fd.name pmatch (/etc)
-              or fd.name pmatch (/lib)
-              or fd.name pmatch (/proc)
-              or fd.name pmatch (/usr/bin)
-              or fd.name pmatch (/usr/lib)
-              or fd.name pmatch (/usr/local)
-              or fd.name pmatch (/usr/share)
-              or fd.name pmatch (/sys/dev/block)
-              or fd.name pmatch (/sys/devices/)
-              or fd.name pmatch (/sys/dev)
-              or fd.name pmatch (/sys/class)
-              or fd.name pmatch (/run/udev/data)
-              or fd.name pmatch (/run/user)
-              or fd.name pmatch (/run/systemd)
-              or fd.name pmatch (/run/credentials)
-              or fd.name pmatch (/var/lib/systemd/timers)
-              or fd.name pmatch (/sys/fs/cgroup/user.slice)
-              or fd.name pmatch (/sys/fs/cgroup/system.slice)
-              or fd.name pmatch (/sys/fs/cgroup/kubepods.slice)
-              or fd.name startswith /tmp/namespace-dev-
-              ))
-           or (proc.exepath in (/usr/lib/systemd/systemd-tmpfiles, /usr/bin/systemd-tmpfiles) and (
-              fd.name pmatch (/dev)
-              or fd.name pmatch (/etc)
-              or fd.name pmatch (/proc)
-              or fd.name pmatch (/run)
-              or fd.name pmatch (/usr)
-              or fd.name pmatch (/var)
-              or fd.name in (/, //home, //lib, //root, //root/.ssh, //srv, //tmp)
-              ))
-           or (proc.exepath = /usr/lib/systemd/systemd-journald and fd.name startswith /proc/)
-           or (proc.exepath = /usr/lib/systemd/systemd-journald and fd.name startswith /run/systemd/journal/streams/)
-           or (proc.exepath = /usr/sbin/logrotate and (
-              fd.name in (/, /etc/passwd, /etc/group, /etc/localtime, /etc/nsswitch.conf, /proc/filesystems)
-              or fd.name startswith /etc/logrotate
-              or fd.name pmatch (/var/lib/logrotate/)
-              ))
-           or (proc.exepath = /usr/lib/sysstat/sadc and (
-              fd.name in (/etc/localtime, /etc/sensors3.conf)
-              or fd.name pmatch (/proc/)
-              or fd.name pmatch (/sys/class/net/)
-              or fd.name startswith /var/log/sysstat/sa
-              ))
-           or (proc.exepath = /usr/bin/kmod and (
-              fd.name = /proc/cmdline
-              or fd.name pmatch (/lib/modprobe.d/)
-              or fd.name pmatch (/lib/modules/)
-              ))
            or (proc.exepath = /usr/sbin/cron and fd.name pmatch (/etc/))
            or (proc.exepath = /usr/sbin/cron and fd.name in (/proc/1/limits, /proc/sys/kernel/ngroups_max, /var/run/utmp))
-           or (proc.exepath = /usr/sbin/xtables-nft-multi and fd.name = /proc/net/ip_tables_names)
            or (proc.exepath = /usr/bin/date and proc.pname = sa2 and fd.name in (/etc/localtime))
            or (proc.exepath = /usr/bin/find and proc.pname = sa2 and fd.name in (/proc/filesystems, /usr/bin))
            or (proc.exepath = /usr/bin/grep and proc.pname = sa2 and fd.name in (/proc/self/maps))
@@ -265,238 +193,97 @@ customRules:
            or (proc.exepath = /usr/bin/dash and proc.name = sa1 and fd.name = /etc/sysstat/sysstat)
            or (proc.exepath = /usr/bin/bash and proc.name = sa2 and fd.name = /etc/sysstat/sysstat)
            or (proc.exepath = /usr/bin/dash and proc.name startswith ifupdown-hotplu and fd.name = /lib/udev/ifupdown-hotplug)
-           or (proc.exepath = /usr/bin/dbus-daemon and fd.name glob "/proc/*/cmdline" )
-           or (proc.exepath = /usr/bin/dbus-daemon and fd.name = /run/systemd/users/0 )
-           or (proc.exepath = /usr/bin/udevadm and (
-              fd.name in (/dev/null, //lib)
-              or fd.name pmatch (/etc)
-              or fd.name pmatch (/run)
-              or fd.name pmatch (/sys)
-              or fd.name pmatch (/usr)
-              ))
-           or (proc.exepath = /usr/bin/umount and fd.name in (/proc/filesystems, /proc/self/mountinfo))
-           or (proc.exepath = /usr/bin/umount and fd.name pmatch (/var/lib/kubelet/pods))
-           or (proc.exepath = /opt/cni/bin/bridge and fd.name glob "/proc/*/task/*/ns/net" )
-           or (proc.exepath = /opt/cni/bin/bridge and fd.name pmatch (/var/run/netns))
-           or (proc.exepath = /opt/cni/bin/flannel and fd.name pmatch (/var/lib/cni/flannel))
-           or (proc.exepath = /opt/cni/bin/host-local and fd.name pmatch (/var/lib/cni/networks))
-           or (proc.exepath = /opt/cni/bin/loopback and fd.name glob "/proc/*/task/*/ns/net" )
-           or (proc.exepath = /opt/cni/bin/loopback and fd.name pmatch (/var/run/netns))
            or (proc.cmdline = "6 init" and proc.name = 6 and proc.pname = runc and fd.name in (/proc/self/exe, /proc/self/oom_score_adj))
-           or (proc.exepath = /usr/sbin/sshd and (
-              (fd.name in (/dev/null, /dev/ptmx, /dev/pts/0))
-              or (fd.name pmatch (/etc/))
-              or (fd.name pmatch (/proc/))
-              or (fd.name pmatch (/lib/))
-              or (fd.name pmatch (/run/))
-              or (fd.name pmatch (/usr/))
-              ))
         ))
-        or (proc.exepath = /usr/sbin/runc and (
-           fd.name pmatch (/run/containerd/)
-           or fd.name pmatch (/sys/fs/cgroup/)
-           or fd.name pmatch (/proc/)
-           or fd.name in (/dev/null, /etc/localtime, /usr/sbin/runc)
-           or (fd.name in (/, /etc/group, /etc/passwd) and proc.name startswith runc:)
-           ))
         )
 
     - macro: file_read_k8s
       condition: (
         (k8s.ns.name = kube-system and (
-           (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd and fd.name = /proc/self/fd)
-           or (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd and fd.name startswith /var/lib/etcd/member/)
-           or (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd and fd.name startswith /etc/kubernetes/pki/etcd/)
-           or (k8s.pod.name startswith kube-apiserver- and proc.exepath = /usr/local/bin/kube-apiserver and fd.name startswith /etc/kubernetes/pki/apiserver-)
-           or (k8s.pod.name startswith kube-proxy- and proc.exepath = /usr/local/bin/kube-proxy and fd.name in (/dev/null, /etc/nsswitch.conf, /etc/protocols, /var/run/secrets/kubernetes.io/serviceaccount/token))
-           or (k8s.pod.name startswith kube-proxy- and proc.exepath = /usr/sbin/xtables-nft-multi and fd.name in (/proc/net/ip_tables_names, /etc/nsswitch.conf, /etc/protocols))
-           or (k8s.pod.name startswith coredns- and proc.exepath = /coredns and fd.name in (/etc/coredns/Corefile, /var/run/secrets/kubernetes.io/serviceaccount/token))
+           (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd)
+           or (k8s.pod.name startswith kube-apiserver- and proc.exepath = /usr/local/bin/kube-apiserver)
+           or (k8s.pod.name startswith kube-proxy- and proc.exepath = /usr/local/bin/kube-proxy)
+           or (k8s.pod.name startswith kube-proxy- and proc.exepath = /usr/sbin/xtables-nft-multi)
+           or (k8s.pod.name startswith coredns- and proc.exepath = /coredns)
         ))
         or (k8s.ns.name = falco and (
-           (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falco and fd.name in (/etc/hosts, /etc/nsswitch.conf, /etc/resolv.conf, /etc/host.conf, /sys/devices/system/cpu/online))
-           or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and fd.name startswith /root/.sigstore/)
-           or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and fd.name startswith /rulesfiles/)
-           or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and fd.name startswith /tmp/falcoctl-)
-           or (k8s.pod.name startswith falco-falcosidekick- and proc.exepath = /app/falcosidekick and fd.name in (/etc/hosts, /etc/resolv.conf, /etc/nsswitch.conf))
-           or (k8s.pod.name startswith falco-falcosidekick-ui- and proc.exepath = /app/falcosidekick-ui and fd.name startswith /app/frontend/dist)
-           or (k8s.pod.name startswith falco-falcosidekick-ui- and proc.exepath = /app/falcosidekick-ui and fd.name in (/etc/hosts, /etc/resolv.conf, /proc/sys/net/core/somaxconn))
+           (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falco)
+           or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl)
+           or (k8s.pod.name startswith falco-falcosidekick- and proc.exepath = /app/falcosidekick)
+           or (k8s.pod.name startswith falco-falcosidekick-ui- and proc.exepath = /app/falcosidekick-ui)
+           or (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/bin/redis-server)
            or (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/nodejs/bin/node and fd.name in (/etc/hosts))
-           or (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/bin/redis-server and fd.name = /proc/self/smaps)
-           or (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/bin/redis-server and fd.name glob "/proc/*/stat")
         ))
         or (k8s.ns.name = kube-flannel and (
-           (k8s.pod.name startswith kube-flannel and proc.exepath = /opt/bin/flanneld and fd.name in (/dev/null, /var/run/secrets/kubernetes.io/serviceaccount/token))
-           or (k8s.pod.name startswith kube-flannel and proc.exepath = /sbin/xtables-nft-multi and fd.name = /proc/net/ip_tables_names)
+           (k8s.pod.name startswith kube-flannel and proc.exepath = /opt/bin/flanneld)
+           or (k8s.pod.name startswith kube-flannel and proc.exepath = /sbin/xtables-nft-multi)
         ))
         )
 
     - macro: file_write
       condition: (
-        (container.id = host and (
+        proc.exepath = /usr/sbin/runc
+        or (container.id = host and (
           proc.exepath = /usr/bin/kubelet
-          or (proc.exepath = /usr/bin/apt-config and fd.name = /dev/null)
-          or (proc.exepath = /usr/bin/apt-get and fd.name in (/dev/null, /var/lib/dpkg/lock, /var/lib/dpkg/lock-frontend))
-          or (proc.exepath = /usr/lib/apt/apt-helper and fd.name = /dev/null)
-          or (proc.exepath = /usr/bin/gpgconf and fd.name = /dev/null)
-          or (proc.exepath = /usr/bin/udevadm and fd.name in (/run/udev/queue, /proc/self/oom_score_adj))
+          or proc.exepath = /usr/bin/apt-config
+          or proc.exepath = /usr/bin/apt-get
+          or proc.exepath = /usr/lib/apt/apt-helper
+          or proc.exepath = /usr/bin/gpgconf
+          or proc.exepath = /usr/bin/udevadm
+          or proc.exepath = /usr/lib/systemd/systemd
+          or proc.exepath = /usr/lib/systemd/systemd-journald
+          or proc.exepath = /usr/local/bin/containerd
+          or proc.exepath = /usr/local/bin/containerd-shim-runc-v2
+          or proc.exepath = /usr/sbin/runc
+          or proc.exepath = /usr/lib/sysstat/sadc
+          or proc.exepath = /usr/sbin/logrotate
           or (proc.exepath = /usr/bin/dash and fd.name in (/dev/null, /run/motd.dynamic.new, /var/lib/apt/daily_lock))
           or (proc.exepath = /usr/bin/bash and fd.name in (/dev/tty, /root/.bash_history))
           or (proc.exepath = /usr/bin/bash and proc.name = sa2 and fd.name = /dev/null)
           or (proc.exepath = /usr/bin/bash and proc.name = sa2 and fd.name pmatch (/var/log/sysstat/))
-          or (proc.exepath = /usr/lib/systemd/systemd and fd.name = /proc/self/oom_score_adj)
-          or (proc.exepath = /usr/lib/systemd/systemd and fd.name startswith /run/systemd/transient/)
-          or (proc.exepath = /usr/lib/systemd/systemd and fd.name startswith /sys/fs/cgroup/kubepods.slice/)
-          or (proc.exepath = /usr/lib/systemd/systemd and fd.name startswith /sys/fs/cgroup/system.slice/)
-          or (proc.exepath = /usr/lib/systemd/systemd and fd.name startswith /sys/fs/cgroup/user.slice/)
-          or (proc.exepath = /usr/lib/systemd/systemd-journald and fd.name startswith /run/systemd/journal/streams/)
-          or (proc.exepath = /usr/local/bin/containerd and fd.name startswith /run/containerd/)
-          or (proc.exepath = /usr/local/bin/containerd and fd.name startswith /proc/self/fd/)
-          or (proc.exepath = /usr/local/bin/containerd and fd.name startswith /var/lib/containerd/)
-          or (proc.exepath = /usr/local/bin/containerd and fd.name startswith /var/log/pods/)
-          or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2 and fd.name startswith /run/containerd/)
-          or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2 and fd.name startswith /proc/self/fd/)
-          or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2 and fd.name startswith /sys/fs/cgroup/)
-          or (proc.exepath = /usr/sbin/runc and fd.name startswith /sys/fs/cgroup/)
-          or (proc.exepath = /usr/sbin/runc and fd.name startswith /run/containerd/)
-          or (proc.exepath = /usr/sbin/sshd and fd.name in (/dev/null, /dev/ptmx, /dev/pts/0, /dev/tty,
-             /proc/self/oom_score_adj, /var/log/lastlog, /var/log/wtmp, /var/run/utmp))
-          or (proc.exepath = /usr/lib/sysstat/sadc and fd.name startswith /var/log/sysstat/sa)
-          or (proc.exepath = /usr/sbin/logrotate and fd.name pmatch (/var/lib/logrotate/))
+          or (proc.exepath = /usr/sbin/sshd and fd.name in (/dev/null, /dev/ptmx, /dev/pts/0, /dev/tty, /proc/self/oom_score_adj, /var/log/lastlog, /var/log/wtmp, /var/run/utmp))
           or (proc.cmdline = "6 init" and proc.name = 6 and proc.pname = runc and fd.name startswith /proc/self/oom_score_adj)
         ))
-        or (proc.exepath = /usr/sbin/runc and fd.name startswith /proc/self/fd/)
-        or (proc.exepath = /usr/sbin/runc and fd.name = /dev/null)
-        or (k8s.ns.name = kube-system and k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd and fd.name startswith /var/lib/etcd/member/)
-        or (k8s.ns.name = kube-flannel and k8s.pod.name startswith kube-flannel and proc.exepath = /opt/bin/flanneld and fd.name = /dev/null)
+        or (k8s.ns.name = kube-system and k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd)
+        or (k8s.ns.name = kube-flannel and k8s.pod.name startswith kube-flannel and proc.exepath = /opt/bin/flanneld)
         or (k8s.ns.name = falco and (
-           (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/bin/redis-server and fd.name startswith /data/)
+           (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/bin/redis-server)
            or (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/nodejs/bin/node and fd.name startswith /redisinsight/)
-           or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and fd.name startswith /root/.sigstore/)
-           or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and fd.name startswith /rulesfiles/)
-           or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and fd.name startswith /tmp/falcoctl-)
+           or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl)
         ))
         )
 
     - macro: file_modify
       condition: (
-        (evt.type in (rename,renameat) and (
-          (not evt.arg.oldpath pmatch (/) and not evt.arg.newpath pmatch (/))
-          or (container.id = host and (
-            (proc.exepath = /usr/bin/kubelet)
-            or (proc.exepath = /usr/lib/systemd/systemd-journald
-               and evt.arg.oldpath pmatch (/run/systemd/journal/streams/) and evt.arg.newpath pmatch (/run/systemd/journal/streams/))
-            or (proc.exepath = /usr/lib/systemd/systemd and (
-               (evt.arg.oldpath startswith /run/systemd/transient/cri-containerd- and evt.arg.newpath startswith /run/systemd/transient/cri-containerd-)
-              or (evt.arg.oldpath pmatch (/run/systemd/transient/kubepods-besteffort.slice.d/)
-                and evt.arg.newpath pmatch (/run/systemd/transient/kubepods-besteffort.slice.d/))
-              or (evt.arg.oldpath pmatch (/run/systemd/transient/kubepods-burstable.slice.d/)
-                and evt.arg.newpath pmatch (/run/systemd/transient/kubepods-burstable.slice.d/))
-              or (evt.arg.oldpath pmatch (/run/systemd/units/) and evt.arg.newpath pmatch (/run/systemd/units/))
-            ))
-            or (proc.exepath = /usr/sbin/runc and (
-              (evt.arg.oldpath pmatch (/run/containerd/runc/k8s.io/) and evt.arg.newpath pmatch (/run/containerd/runc/k8s.io/))
-              or (evt.arg.oldpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/)
-                 and evt.arg.newpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/))
-            ))
-            or (proc.exepath = /usr/local/bin/containerd and (
-              (evt.arg.oldpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/)
-               and evt.arg.newpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/))
-              or (evt.arg.oldpath pmatch (/var/lib/containerd/) and evt.arg.newpath pmatch (/var/lib/containerd/))
-            ))
-            or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2
-               and evt.arg.oldpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/)
-               and evt.arg.newpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/))
-            or (proc.exepath = /usr/sbin/logrotate and evt.arg.oldpath pmatch (/var/lib/logrotate/) and evt.arg.newpath pmatch (/var/lib/logrotate/))
-          ))
-          or (k8s.ns.name = kube-system and (
-            (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd
-            and evt.arg.oldpath pmatch (/var/lib/etcd/member/wal/) and evt.arg.newpath pmatch (/var/lib/etcd/member/wal/))
-          ))
-          or (k8s.ns.name = falco and (
-            (k8s.pod.name = falco-falcosidekick-ui-redis-0 and proc.exepath = /opt/redis-stack/bin/redis-server
-              and evt.arg.oldpath startswith /data/temp- and evt.arg.newpath = /data/dump.rdb )
-            or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl
-              and evt.arg.oldpath pmatch (/root/.sigstore/root/tuf.db/) and evt.arg.newpath pmatch (/root/.sigstore/root/tuf.db/))
-          ))
+        proc.exepath = /usr/sbin/runc
+        or (container.id = host and (
+          proc.exepath = /usr/bin/kubelet
+          or proc.exepath = /usr/lib/systemd/systemd
+          or proc.exepath = /usr/lib/systemd/systemd-journald
+          or proc.exepath = /usr/sbin/runc
+          or proc.exepath = /usr/local/bin/containerd
+          or proc.exepath = /usr/local/bin/containerd-shim-runc-v2
+          or proc.exepath = /usr/bin/udevadm
+          or proc.exepath = /opt/cni/bin/flannel
+          or proc.exepath = /opt/cni/bin/host-local
         ))
-        or (evt.type in (unlink, unlinkat) and (
-          (not evt.arg.name pmatch (/))
-          or (proc.exepath = /usr/sbin/runc and evt.arg.name pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/))
-          or (container.id = host and (
-             (proc.exepath = /usr/bin/kubelet)
-             or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.name startswith /tmp/systemd-private-)
-             or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.name startswith /var/tmp/systemd-private-)
-             or (proc.exepath = /usr/local/bin/containerd and evt.arg.name pmatch (/var/lib/containerd/))
-             or (proc.exepath = /usr/local/bin/containerd and evt.arg.name pmatch (/var/lib/cni/results/))
-             or (proc.exepath = /usr/local/bin/containerd and evt.arg.name pmatch (/run/containerd/))
-             or (proc.exepath = /usr/local/bin/containerd and evt.arg.name pmatch (/run/netns/))
-             or (proc.exepath = /usr/bin/udevadm and evt.arg.name pmatch (/run/udev/links/))
-             or (proc.exepath = /usr/sbin/runc and evt.arg.name pmatch (/run/containerd/runc/k8s.io/))
-             or (proc.exepath = /usr/sbin/runc and evt.arg.name pmatch (/sys/fs/cgroup/kubepods.slice/kubepods-burstable.slice/))
-             or (proc.exepath = /usr/sbin/runc and evt.arg.name pmatch (/sys/fs/cgroup/kubepods.slice/kubepods-besteffort.slice/))
-             or (proc.exepath = /opt/cni/bin/flannel and evt.arg.name pmatch (/var/lib/cni/flannel/))
-             or (proc.exepath = /opt/cni/bin/host-local and evt.arg.name pmatch (/var/lib/cni/))
-             or (proc.exepath = /usr/local/bin/containerd-shim-runc-v2 and evt.arg.name pmatch (/run/containerd/s/))
-          ))
-          or (k8s.ns.name = kube-system and (
-             (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd and evt.arg.name pmatch (/var/lib/etcd/member/))
-             or (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd and evt.arg.name = "")
-          ))
-          or (k8s.ns.name = falco and (
-             (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and evt.arg.name pmatch (/root/.sigstore/))
-             or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and evt.arg.name pmatch (/rulesfiles/))
-             or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and evt.arg.name startswith /tmp/falcoctl-)
-             or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl and evt.arg.name = "")
-          ))
+        or (k8s.ns.name = kube-system and (
+          (k8s.pod.name startswith etcd- and proc.exepath = /usr/local/bin/etcd)
         ))
-        or (evt.type in (rmdir) and (
-          (not evt.arg.path pmatch (/))
-          or (container.id = host and (
-             (proc.exepath = /usr/lib/systemd/systemd and evt.arg.path pmatch (/run/systemd/propagate/))
-             or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.path pmatch (/run/systemd/transient/))
-             or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.path pmatch (/sys/fs/cgroup/kubepods.slice/kubepods-burstable.slice/))
-             or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.path pmatch (/sys/fs/cgroup/system.slice/))
-             or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.path pmatch (/sys/fs/cgroup/user.slice/))
-             or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.path pmatch (/run/credentials/systemd-tmpfiles-clean.service))
-             or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.path startswith /tmp/namespace-dev-)
-             or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.path startswith /tmp/systemd-private-)
-             or (proc.exepath = /usr/lib/systemd/systemd and evt.arg.path startswith /var/tmp/systemd-private-)
-          ))
-        ))
-        or (evt.type in (fchmod, fchmodat) and (
-          (proc.exepath = /usr/sbin/runc and fs.path.name pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/))
-          or (container.id = host and (
-             (proc.exepath = /usr/bin/kubelet)
-             or (proc.exepath = /usr/lib/systemd/systemd and fs.path.name pmatch (/run/systemd/transient/))
-             or (proc.exepath = /usr/lib/systemd/systemd and fs.path.name = /dev/shm)
-             or (proc.exepath = /usr/local/bin/containerd and fs.path.name pmatch (/var/lib/containerd/io.containerd.grpc.v1.cri/containers/))
-          ))
+        or (k8s.ns.name = falco and (
+          (k8s.pod.name = falco-falcosidekick-ui-redis-0 and proc.exepath = /opt/redis-stack/bin/redis-server)
+          or (k8s.pod.name startswith falco- and proc.exepath = /usr/bin/falcoctl)
         ))
         )
 
     - macro: symlink_exempt
       condition: (
-        evt.type in (symlinkat) and (
-          (proc.exepath = /usr/sbin/runc and (
-            (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/rootfs/dev/fd" and evt.arg.target = /proc/self/fd)
-            or (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/rootfs/dev/stdin" and evt.arg.target = /proc/self/fd/0)
-            or (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/rootfs/dev/stdout" and evt.arg.target = /proc/self/fd/1)
-            or (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/rootfs/dev/stderr" and evt.arg.target = /proc/self/fd/2)
-            or (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/rootfs/dev/core" and evt.arg.target = /proc/kcore)
-            or (evt.arg.linkpath glob "/run/containerd/io.containerd.runtime.v2.task/k8s.io/*/rootfs/dev/ptmx" and evt.arg.target = pts/ptmx)
-          ))
-          or (container.id = host and (
-             (proc.exepath = /usr/bin/kubelet)
-             or (proc.exepath = /usr/lib/systemd/systemd and (
-                (evt.arg.linkpath pmatch (/run/systemd/units/))
-                or (evt.arg.linkpath startswith /tmp/namespace-dev-)
-                ))
-             or (proc.exepath = /usr/local/bin/containerd and (
-                (evt.arg.linkpath pmatch (/run/containerd/io.containerd.runtime.v2.task/k8s.io/)
-                and evt.arg.target pmatch (/var/lib/containerd/io.containerd.runtime.v2.task/k8s.io/))
-             ))
-          ))
-        )
+        proc.exepath = /usr/sbin/runc
+        or (container.id = host and (
+          proc.exepath = /usr/bin/kubelet
+          or proc.exepath = /usr/lib/systemd/systemd
+          or proc.exepath = /usr/local/bin/containerd
+        ))
         )
 
     #    (evt.type in (symlinkat, symlink) and proc.exepath = /usr/lib/systemd/systemd and proc.name = systemd)
