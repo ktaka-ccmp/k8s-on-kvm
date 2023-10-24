@@ -64,6 +64,10 @@ customRules:
         or proc.exepath = /usr/bin/cmp
         or proc.exepath = /usr/bin/basename
         or proc.exepath = /usr/bin/dirname
+        or (proc.exepath = /usr/bin/cp and proc.cmdline = "cp -p /var/lib/aptitude/pkgstates aptitude.pkgstates")
+        or (proc.exepath = /usr/bin/dash and proc.cmdline = "savelog /bin/savelog -c 7 aptitude.pkgstates")
+        or (proc.exepath = /usr/bin/rm and proc.cmdline = "rm -f -- .//aptitude.pkgstates.6 .//aptitude.pkgstates.6.gz")
+        or (proc.exepath = /usr/bin/gzip and proc.cmdline = "gzip -f -9 .//aptitude.pkgstates.0")
         )
 
     - macro: proc_kmod

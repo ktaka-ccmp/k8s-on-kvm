@@ -220,6 +220,13 @@ customRules:
            or (proc.exepath = /usr/bin/dash and proc.name = sa1 and fd.name = /etc/sysstat/sysstat)
            or (proc.exepath = /usr/bin/bash and proc.name = sa2 and fd.name = /etc/sysstat/sysstat)
            or (proc.exepath = /usr/bin/dash and proc.name startswith ifupdown-hotplu and fd.name = /lib/udev/ifupdown-hotplug)
+           or (proc.exepath = /usr/bin/cp and proc.cmdline = "cp -p /var/lib/aptitude/pkgstates aptitude.pkgstates")
+           or (proc.exepath = /usr/bin/dash and proc.cmdline = "savelog /bin/savelog -c 7 aptitude.pkgstates")
+           or (proc.exepath = /usr/bin/date and proc.cmdline = "date")
+           or (proc.exepath = /usr/bin/date and proc.cmdline = "date +%Y%m%d%H%M%S")
+           or (proc.exepath = /usr/bin/mv and proc.cmdline = "mv -f -- aptitude.pkgstates .//aptitude.pkgstates.0")
+           or (proc.exepath = /usr/bin/mv and proc.cmdline glob "mv -f -- .//aptitude.pkgstates.*.gz .//aptitude.pkgstates.*.gz")
+           or (proc.exepath = /usr/bin/gzip and proc.cmdline = "gzip -f -9 .//aptitude.pkgstates.0")
            or (proc.cmdline = "6 init" and proc.name = 6 and proc.pname = runc and fd.name in (/proc/self/exe, /proc/self/oom_score_adj))
         ))
         or (k8s.ns.name = falco and (
@@ -235,6 +242,8 @@ customRules:
           or (proc.exepath = /usr/bin/bash and proc.name = sa2 and fd.name = /dev/null)
           or (proc.exepath = /usr/bin/bash and proc.name = sa2 and fd.name pmatch (/var/log/sysstat/))
           or (proc.exepath = /usr/sbin/sshd and fd.name in (/dev/null, /dev/ptmx, /dev/pts/0, /dev/tty, /proc/self/oom_score_adj, /var/log/lastlog, /var/log/wtmp, /var/run/utmp))
+          or (proc.exepath = /usr/bin/cp and proc.cmdline = "cp -p /var/lib/aptitude/pkgstates aptitude.pkgstates" and fd.name = "/var/backups/aptitude.pkgstates")
+          or (proc.exepath = /usr/bin/gzip and proc.cmdline = "gzip -f -9 .//aptitude.pkgstates.0" and fd.name = "/var/backups/aptitude.pkgstates.0.gz")
           or (proc.cmdline = "6 init" and proc.name = 6 and proc.pname = runc and fd.name startswith /proc/self/oom_score_adj)
         ))
         or (k8s.ns.name = falco and (
@@ -244,8 +253,14 @@ customRules:
 
     - macro: file_modify
       condition: (
-        (k8s.ns.name = falco and (
-           (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/nodejs/bin/node and fd.name startswith /redisinsight/content/)
+        (container.id = host and (
+          (proc.exepath = /usr/bin/rm and proc.cmdline = "rm -f -- .//aptitude.pkgstates.6 .//aptitude.pkgstates.6.gz")
+          or (proc.exepath = /usr/bin/mv and proc.cmdline = "mv -f -- aptitude.pkgstates .//aptitude.pkgstates.0")
+          or (proc.exepath = /usr/bin/mv and proc.cmdline glob "mv -f -- .//aptitude.pkgstates.*.gz .//aptitude.pkgstates.*.gz")
+          or (proc.exepath = /usr/bin/gzip and proc.cmdline = "gzip -f -9 .//aptitude.pkgstates.0")
+        ))
+        or (k8s.ns.name = falco and (
+          (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/nodejs/bin/node and fd.name startswith /redisinsight/content/)
         ))
         )
 
