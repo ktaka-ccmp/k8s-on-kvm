@@ -148,14 +148,12 @@ customRules:
         or (fd.name startswith /lib/x86_64-linux-gnu/)
         )
 
-
     - macro: file_trusted_process
       condition: (
         proc.exepath = /usr/sbin/runc
         or proc.exepath = /usr/bin/kubelet
         or proc.exepath = /usr/bin/apt-config
         or proc.exepath = /usr/bin/apt-get
-        or proc.exepath = /usr/bin/apt-helper
         or proc.exepath = /usr/lib/apt/apt-helper
         or proc.exepath = /usr/bin/dpkg
         or proc.exepath = /usr/local/bin/containerd
@@ -163,7 +161,6 @@ customRules:
         or proc.exepath = /usr/bin/systemctl
         or proc.exepath = /usr/bin/systemd-tmpfiles
         or proc.exepath = /usr/lib/systemd/systemd
-        or proc.exepath = /usr/lib/systemd/systemd-tmpfiles
         or proc.exepath = /usr/lib/systemd/systemd-journald
         or proc.exepath = /usr/sbin/logrotate
         or proc.exepath = /usr/lib/sysstat/sadc
@@ -191,7 +188,6 @@ customRules:
            or (k8s.pod.name startswith falco-falcosidekick- and proc.exepath = /app/falcosidekick)
            or (k8s.pod.name startswith falco-falcosidekick-ui- and proc.exepath = /app/falcosidekick-ui)
            or (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/bin/redis-server)
-           or (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/nodejs/bin/node and fd.name in (/etc/hosts))
         ))
         or (k8s.ns.name = kube-flannel and (
            (k8s.pod.name startswith kube-flannel and proc.exepath = /opt/bin/flanneld)
