@@ -206,7 +206,7 @@ customRules:
            or (proc.exepath = /usr/sbin/cron and fd.name in (/proc/1/limits, /proc/sys/kernel/ngroups_max, /var/run/utmp))
            or (proc.exepath = /usr/bin/dash and proc.pname = run-parts
               and fd.name in (/etc/cron.daily/apt-compat, /etc/cron.daily/aptitude, /etc/cron.daily/dpkg, /etc/cron.daily/logrotate, /etc/cron.daily/sysstat))
-           or (proc.name = dpkg-db-backup and (
+           or (proc.pname = dpkg-db-backup and (
               (proc.exepath = /usr/bin/dash and fd.name in (/usr/libexec/dpkg/dpkg-db-backup, /usr/share/dpkg/sh/dpkg-error.sh))
               or (proc.exepath = /usr/bin/tar and fd.name in (/etc/passwd, /etc/group, /etc/nsswitch.conf, /proc/filesystems))
               or (proc.exepath = /usr/bin/tar and fd.name pmatch (/var/backups/))
@@ -237,10 +237,11 @@ customRules:
     - macro: file_write
       condition: (
         (container.id = host and (
-          (proc.exepath = /usr/bin/dash and fd.name in (/dev/null, /run/motd.dynamic.new, /var/lib/apt/daily_lock))
+          fd.name in (/dev/null)
+          or (proc.exepath = /usr/bin/dash and fd.name in (/run/motd.dynamic.new, /var/lib/apt/daily_lock))
           or (proc.exepath = /usr/bin/bash and fd.name in (/dev/tty, /root/.bash_history))
-          or (proc.exepath = /usr/bin/bash and proc.name = sa2 and fd.name = /dev/null)
           or (proc.exepath = /usr/bin/bash and proc.name = sa2 and fd.name pmatch (/var/log/sysstat/))
+          or (proc.exepath = /usr/bin/bash and proc.name = sa2 and proc.pname = systemd and fd.name = /usr/lib/sysstat/sa2 and proc.cmdline = "sa2 /usr/lib/sysstat/sa2 -A")
           or (proc.exepath = /usr/sbin/sshd and fd.name in (/dev/null, /dev/ptmx, /dev/pts/0, /dev/tty, /proc/self/oom_score_adj, /var/log/lastlog, /var/log/wtmp, /var/run/utmp))
           or (proc.exepath = /usr/bin/cp and proc.cmdline = "cp -p /var/lib/aptitude/pkgstates aptitude.pkgstates" and fd.name = "/var/backups/aptitude.pkgstates")
           or (proc.exepath = /usr/bin/gzip and proc.cmdline = "gzip -f -9 .//aptitude.pkgstates.0" and fd.name = "/var/backups/aptitude.pkgstates.0.gz")
@@ -250,6 +251,7 @@ customRules:
            (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/nodejs/bin/node and fd.name startswith /redisinsight/content/)
         ))
         )
+    # Need to check if /dev/tty, /dev/ptmx, /dev/pts/0 are safe to be ignored.
 
     - macro: file_modify
       condition: (
@@ -258,6 +260,9 @@ customRules:
           or (proc.exepath = /usr/bin/mv and proc.cmdline = "mv -f -- aptitude.pkgstates .//aptitude.pkgstates.0")
           or (proc.exepath = /usr/bin/mv and proc.cmdline glob "mv -f -- .//aptitude.pkgstates.*.gz .//aptitude.pkgstates.*.gz")
           or (proc.exepath = /usr/bin/gzip and proc.cmdline = "gzip -f -9 .//aptitude.pkgstates.0")
+          or (proc.exepath = /usr/bin/rm and evt.arg.name pmatch (/var/log/sysstat/))
+          or (evt.type = unlinkat and not evt.arg.name exists)
+          or (evt.type = renameat2 and not evt.arg.oldpath exists)
         ))
         or (k8s.ns.name = falco and (
           (k8s.pod.name startswith falco-falcosidekick-ui-redis- and proc.exepath = /opt/redis-stack/nodejs/bin/node and fd.name startswith /redisinsight/content/)
@@ -316,6 +321,7 @@ customRules:
       desc: Detected unexpected File Redirect
       enabled: true
       condition: open_write2 and not file_write_exempt
+    #  condition: open_write2
       output: Detected Unexpected File Redirect (host=%evt.hostname file=%fd.name pcmdline=%proc.pcmdline gparent=%proc.aname[2] ggparent=%proc.aname[3] gggparent=%proc.aname[4] aname[5]=%proc.aname[5] aname[6]=%proc.aname[6] aname[7]=%proc.aname[7] evt_type=%evt.type read=%evt.is_open_read write=%evt.is_open_write user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info evt.args=%evt.args)
       priority: WARNING
       tags: [catch_all, file_redirect, ktaka]
@@ -324,7 +330,7 @@ customRules:
       desc: Detected unexpected File Modification
       enabled: true
       condition: modify and not file_modify_exempt
-      output: Detected unexpected File Modification (file=%fd.name name=%evt.arg.name path=%evt.arg.path oldpath=%evt.arg.oldpath newpath=%evt.arg.newpath evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info evt.arg.fd=%evt.arg.fd evt.arg.filename=%evt.arg.filename evt.arg.mode=%evt.arg.mode fs.path.name=%fs.path.name fs.path.source=%fs.path.source fs.path.target=%fs.path.target)
+      output: Detected unexpected File Modification (file=%fd.name name=%evt.arg.name path=%evt.arg.path oldpath=%evt.arg.oldpath newpath=%evt.arg.newpath evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info evt.arg.fd=%evt.arg.fd evt.arg.filename=%evt.arg.filename evt.arg.mode=%evt.arg.mode fs.path.name=%fs.path.name fs.path.source=%fs.path.source fs.path.target=%fs.path.target gparent=%proc.aname[2] ggparent=%proc.aname[3] gggparent=%proc.aname[4] aname[5]=%proc.aname[5] aname[6]=%proc.aname[6] aname[7]=%proc.aname[7])
       priority: WARNING
       tags: [catch_all, file_modifiy, ktaka]
 
@@ -332,7 +338,7 @@ customRules:
       desc: Detected unexpected new Symlink
       enabled: true
       condition: create_symlink and not symlink_exempt
-      output: Symlinks created (host=%evt.hostname target=%evt.arg.target linkpath=%evt.arg.linkpath evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
+      output: Symlinks created (host=%evt.hostname target=%evt.arg.target linkpath=%evt.arg.linkpath evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info gparent=%proc.aname[2] ggparent=%proc.aname[3] gggparent=%proc.aname[4] aname[5]=%proc.aname[5] aname[6]=%proc.aname[6] aname[7]=%proc.aname[7])
       priority: WARNING
       tags: [catch_all, new_symlink, ktaka]
 
@@ -340,7 +346,7 @@ customRules:
       desc: Detected unexpected new Hardlink
       enabled: true
       condition: create_hardlink and not hardlink_exempt
-      output: Hardlinks created (host=%evt.hostname target=%evt.arg.target linkpath=%evt.arg.linkpath evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info)
+      output: Hardlinks created (host=%evt.hostname target=%evt.arg.target linkpath=%evt.arg.linkpath evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags %container.info gparent=%proc.aname[2] ggparent=%proc.aname[3] gggparent=%proc.aname[4] aname[5]=%proc.aname[5] aname[6]=%proc.aname[6] aname[7]=%proc.aname[7])
       priority: WARNING
       tags: [catch_all, new_hardlink, ktaka]
 
